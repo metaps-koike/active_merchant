@@ -55,6 +55,7 @@ module ActiveMerchant #:nodoc:
 
       #
       # Change customer's mail address information according to existing customer_id
+      # @todo change method name to `update`
       #
       def store_mail(credit_card, options = {})
 
@@ -69,25 +70,6 @@ module ActiveMerchant #:nodoc:
         commit(:cust_change_mail, post)
 
       end
-
-
-      #
-      # Get payment status
-      #
-      def get_status(transaction_id = nil, site_transaction_id = nil)
-
-        unless transaction_id || site_transaction_id
-          raise "transactioon_id or site_transaction_id is required."
-        end
-
-        post = {}
-        add_credential(post)
-        add_transaction_id(post, transaction_id, site_transaction_id)
-
-        commit(:get_status, post)
-
-      end
-
 
 
       #
