@@ -22,6 +22,7 @@ module ActiveMerchant #:nodoc:
       # - set nil for credit_card for quick purchase but requires `customerId` option
       #
       def purchase(money, credit_card, options={})
+
         post = {}
         add_credential(post)
         add_invoice(post, money, options)
@@ -29,35 +30,19 @@ module ActiveMerchant #:nodoc:
         add_address(post, options)
         add_customer_data(post, options)
         add_item(post, options)
+        add_transaction_id(post, options)
         add_misc(post, options)
         add_customer_mail(post, options)
+        add_divided_payment(post, options)
 
         commit(:sale, post)
       end
 
       #
       # Change customer's credit card information according to existing customer_id
-      #
-      def store(credit_card, options = {})
-
-        requires!(options, :customer_id)
-        requires!(options, :customer_password)
-
-        post = {}
-        add_credential(post)
-        add_customer_data(post, options)
-        add_cc(post, credit_card, options)
-
-        commit(:cust_change, post)
-
-      end
-
-
-      #
-      # Change customer's mail address information according to existing customer_id
       # @todo change method name to `update`
       #
-      def store_mail(credit_card, options = {})
+      def update(customer_mail, customer_password, credit_card = nil, mail = nil, options = {})
 
         requires!(options, :customer_id)
         requires!(options, :customer_password)
@@ -65,11 +50,17 @@ module ActiveMerchant #:nodoc:
         post = {}
         add_credential(post)
         add_customer_data(post, options)
-        add_customer_mail(post, options)
 
-        commit(:cust_change_mail, post)
+        if credit_card
+          add_cc(post, credit_card, options)
+          commit(:cust_change, post)
+        elsif mail
+          add_customer_mail(post, options)
+          commit(:cust_change_mail, post)
+        end
 
       end
+
 
 
       #
@@ -77,20 +68,37 @@ module ActiveMerchant #:nodoc:
       #
       def void(transaction_id, options = {})
 
+        options[:TransactionId] = transaction_id
+        options[:SiteTransactionId] = options[:SiteTransactionId]
+
         post = {}
         add_credential(post)
-        add_transaction_id(post, transaction_id)
+        add_transaction_id(post, options)
+        add_site_transaction_id(post, options)
 
         commit(:void, post)
       end
 
-
+      #
+      # Purchase or quick purchase.
+      # - set nil for credit_card for quick purchase but requires `customerId` option
+      #
       def authorize(money, credit_card, options={})
-        raise NotImplementedError, "Authorization operation is not provided by the gateway"
+        purchase(money, credit_card, options)
       end
 
+      #
+      # Capture
+      #
       def capture(money, authorization, options={})
-        raise NotImplementedError, "Capture operation is not provided by the gateway"
+
+        options[:TransactionId] = authorization
+
+        post = {}
+        add_credential(post)
+        add_transaction_id(post, options)
+
+        commit(:capture, post)
       end
 
       def refund(money, authorization, options={})
@@ -107,10 +115,15 @@ module ActiveMerchant #:nodoc:
       end
 
 
-      def add_transaction_id(post, transaction_id = nil, site_transaction_id = nil)
-        post[:TransactionId]     = transaction_id      if transaction_id
-        post[:SiteTransactionId] = site_transaction_id if site_transaction_id
+      def add_transaction_id(post, options)
+        post[:TransactionId] = options[:TransactionId] if options[:TransactionId]
       end
+
+
+      def add_site_transaction_id(post, options)
+        post[:SiteTransactionId] = options[:SiteTransactionId] if options[:SiteTransactionId]
+      end
+
 
       def add_customer_data(post, options)
         post[:CustomerId] = options[:customer_id]         if options[:customer_id]
@@ -120,6 +133,14 @@ module ActiveMerchant #:nodoc:
 
       def add_customer_mail(post, options)
         post[:Mail] = options[:mail] if options[:mail]
+      end
+
+      #
+      # Handling divided payment options
+      #
+      def add_divided_payment(post, options)
+        post[:paymentType] = options[:payment_type] if options[:payment_type]
+        post[:paymentCnt]  = options[:payment_cnd] if options[:payment_cnt]
       end
 
       def add_item(post, options)
@@ -162,7 +183,6 @@ module ActiveMerchant #:nodoc:
 
       def add_misc(post, options)
         post[:note]          = options[:note] if options[:note]
-        post[:TransactionId] = options[:TransactionId] if options[:TransactionId]
         post[:ipaddr]        = options[:ipaddr] if options[:ipaddr]
         post[:country]       = options[:country] if options[:country]
       end
@@ -200,6 +220,8 @@ module ActiveMerchant #:nodoc:
           url = end_point  + 'get_status.htm'
         when :void
           url = end_point  + 'void.htm'
+        when :capture
+          url = end_point  + 'capture.htm'
         else
           raise "Specify action type."
         end

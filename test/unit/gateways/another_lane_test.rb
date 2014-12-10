@@ -52,34 +52,23 @@ class AnotherLaneTest < Test::Unit::TestCase
   end
 
 
-  def test_successful_store
+  def test_successful_update
     @gateway.expects(:ssl_get).returns(successful_customer_response)
 
-    response = @gateway.store(@credit_card, @options)
+    response = @gateway.update(@options[:customer_id], @options[:customer_password], @credit_card, nil, @options)
     assert_success response
     assert response.test?
 
   end
 
 
-  def test_successful_store_mail
+  def test_successful_update_mail
     @gateway.expects(:ssl_get).returns(successful_purchase_response)
 
-    response = @gateway.store_mail(@credit_card, @options)
+    response = @gateway.update(@options[:customer_id], @options[:customer_password], nil, 'new-' + @options[:mail], @options)
     assert_success response
     assert response.test?
 
-  end
-
-
-  def test_successful_get_status
-    @gateway.expects(:ssl_get).returns(successful_get_status_response)
-
-    response = @gateway.void(@transaction_id)
-    assert_success response
-
-    assert_equal '1403068210742', response.authorization
-    assert response.test?
   end
 
 

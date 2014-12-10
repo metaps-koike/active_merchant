@@ -45,14 +45,14 @@ class RemoteAnotherLaneTest < Test::Unit::TestCase
 #    assert_failure response
 #  end
 
-  def test_successful_store
-    response = @gateway.store(@credit_card, @options)
+  def test_successful_update
+    response = @gateway.update(@options[:customer_id], @options[:customer_password], @credit_card, nil, @options)
     assert_success response
     assert_match(/thanks/, response.message)
   end
 
-  def test_successful_store_mail
-    response = @gateway.store_mail(@credit_card, @options)
+  def test_successful_update_mail
+    response = @gateway.update(@options[:customer_id], @options[:customer_password], nil, 'foo@example.com', @options)
     assert_success response
     assert_match(/thanks/, response.message)
   end
