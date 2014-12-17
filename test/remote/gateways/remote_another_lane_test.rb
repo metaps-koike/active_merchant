@@ -2,9 +2,14 @@ require 'test_helper'
 
 class RemoteAnotherLaneTest < Test::Unit::TestCase
   def setup
-    fixtures = fixtures(:another_lane)
 
-    @gateway = AnotherLaneGateway.new(fixtures)
+    # test
+#    require 'logger'
+#    logger = ::Logger.new('log/active_merchant.log')
+#    ActiveMerchant::Billing::Gateway.logger = logger
+
+    @gateway = AnotherLaneGateway.new(fixtures(:another_lane))
+
 
     # Do not change this value because 210 JPY is specified by gatway company.
     @amount = 210
@@ -20,12 +25,12 @@ class RemoteAnotherLaneTest < Test::Unit::TestCase
       customer_password: 'password',
     }
 
-
     @options_quick = {
       customer_id: 'customer_id',
       customer_password: 'password',
     }
   end
+
 
   def test_successful_purchase
     response = @gateway.purchase(@amount, @credit_card, @options)
@@ -39,11 +44,20 @@ class RemoteAnotherLaneTest < Test::Unit::TestCase
     assert_match(/(Approved|OK)/i, response.message)
   end
 
+  # To test this, need to execute live mode.
+  def test_successful_capture
+    response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success response
+
+    assert void = @gateway.capture(@amount, response.authorization)
+    assert_success void
+  end
+
   # Test server returns succeed even if sending invalid request.
-#  def test_failed_purchase
-#    response = @gateway.purchase(@amount, @declined_card, @options)
-#    assert_failure response
-#  end
+  def test_failed_purchase
+    response = @gateway.purchase(@amount, @declined_card, @options)
+    assert_failure response
+  end
 
   def test_successful_update
     response = @gateway.update(@options[:customer_id], @options[:customer_password], @credit_card, nil, @options)
@@ -58,13 +72,13 @@ class RemoteAnotherLaneTest < Test::Unit::TestCase
   end
 
   # To test this, need to execute live mode.
-#  def test_successful_void
-#    response = @gateway.purchase(@amount, @credit_card, @options)
-#    assert_success response
-#
-#    assert void = @gateway.void(response.authorization)
-#    assert_success void
-#  end
+  def test_successful_void
+    response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success response
+
+    assert void = @gateway.void(response.authorization)
+    assert_success void
+  end
 
   def test_failed_void
     response = @gateway.void('')

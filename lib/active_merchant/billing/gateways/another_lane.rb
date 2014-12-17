@@ -35,12 +35,12 @@ module ActiveMerchant #:nodoc:
         add_customer_mail(post, options)
         add_divided_payment(post, options)
 
+
         commit(:sale, post)
       end
 
       #
       # Change customer's credit card information according to existing customer_id
-      # @todo change method name to `update`
       #
       def update(customer_mail, customer_password, credit_card = nil, mail = nil, options = {})
 
@@ -110,7 +110,7 @@ module ActiveMerchant #:nodoc:
       private
 
       def add_credential(post)
-        post[:SiteId] = options[:site_id]
+        post[:SiteId]   = options[:site_id]
         post[:SitePass] = options[:site_password]
       end
 
