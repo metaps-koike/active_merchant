@@ -16,7 +16,6 @@ adyen:
   merchant: merchant
   password: password
 
-# Working credentials, no need to replace
 another_lane:
   site_id: 'your site id'
   site_password: 'your site password'
