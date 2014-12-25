@@ -7,7 +7,7 @@ module ActiveMerchant #:nodoc:
 
       self.supported_countries = ['JP']
       self.default_currency = 'JPY' # currency is hard binded to merchant code.
-      self.supported_cardtypes = [:visa, :master, :american_express, :jcb]
+      self.supported_cardtypes = [:visa, :master, :american_express, :jcb, :diners_club]
 
       self.homepage_url = 'http://www.alij.ne.jp/'
       self.display_name = 'Another Lane'
