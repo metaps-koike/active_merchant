@@ -35,22 +35,22 @@ class RemoteAnotherLaneTest < Test::Unit::TestCase
   def test_successful_purchase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
-    assert_match(/(Approved|OK)/i, response.message)
+    assert_equal ':', response.message
   end
 
   def test_successful_quick_purchase
     response = @gateway.purchase(@amount, nil, @options_quick)
     assert_success response
-    assert_match(/(Approved|OK)/i, response.message)
+    assert_equal ':', response.message
   end
 
   # To test this, need to execute live mode.
   def test_successful_capture
-    response = @gateway.purchase(@amount, @credit_card, @options)
+    response = @gateway.authorize(@amount, @credit_card, @options)
     assert_success response
 
-    assert void = @gateway.capture(@amount, response.authorization)
-    assert_success void
+    assert capture = @gateway.capture(@amount, response.authorization)
+    assert_success capture
   end
 
   # Test server returns succeed even if sending invalid request.

@@ -21,28 +21,61 @@ class AnotherLaneTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase
-    @gateway.expects(:ssl_get).returns(successful_purchase_response)
+    @gateway.expects(:ssl_get).times(2).returns(successful_authorize_response).then.returns(successful_capture_response)
 
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
 
-    assert_equal '1403068210742', response.authorization
+    assert_equal '1403068210744', response.authorization
     assert response.test?
   end
 
 
   def test_successful_quick_purchase
-    @gateway.expects(:ssl_get).returns(successful_purchase_response)
+    @gateway.expects(:ssl_get).times(2).returns(successful_authorize_response).then.returns(successful_capture_response)
 
     response = @gateway.purchase(@amount, nil, @options)
     assert_success response
 
-    assert_equal '1403068210742', response.authorization
+    assert_equal '1403068210744', response.authorization
+    assert response.test?
+  end
+
+
+  def test_successful_authorize
+    @gateway.expects(:ssl_get).returns(successful_authorize_response)
+
+    response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success response
+
+    assert_equal '1403068210743', response.authorization
+    assert response.test?
+  end
+
+
+  def test_successful_authorize_capture
+
+    @gateway.expects(:ssl_get).returns(successful_authorize_response)
+
+    response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success response
+
+    assert_equal '1403068210743', response.authorization
+    assert response.test?
+
+
+    @gateway.expects(:ssl_get).returns(successful_capture_response)
+
+    response = @gateway.capture(@amount, response.authorization)
+    assert_success response
+
+    assert_equal '1403068210744', response.authorization
     assert response.test?
   end
 
 
   def test_failed_purchase
+
     @gateway.expects(:ssl_get).returns(failed_purchase_response)
 
     response = @gateway.purchase(@amount, @credit_card, @options)
@@ -87,6 +120,14 @@ class AnotherLaneTest < Test::Unit::TestCase
 
   def successful_purchase_response
     'state=1&TransactionId=1403068210742&msg=Approved'
+  end
+
+  def successful_authorize_response
+    'state=1&TransactionId=1403068210743&msg=Approved'
+  end
+
+  def successful_capture_response
+    'state=1&TransactionId=1403068210744&msg=Approved'
   end
 
   def failed_purchase_response

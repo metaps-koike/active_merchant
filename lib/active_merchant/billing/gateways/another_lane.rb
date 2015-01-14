@@ -23,20 +23,13 @@ module ActiveMerchant #:nodoc:
       #
       def purchase(money, credit_card, options={})
 
-        post = {}
-        add_credential(post)
-        add_invoice(post, money, options)
-        add_cc(post, credit_card, options)
-        add_address(post, options)
-        add_customer_data(post, options)
-        add_item(post, options)
-        add_transaction_id(post, options)
-        add_misc(post, options)
-        add_customer_mail(post, options)
-        add_divided_payment(post, options)
+        auth_response = authorize(money, credit_card, options)
 
+        # return if failure
+        return auth_response unless auth_response.success?
 
-        commit(:sale, post)
+        capture(money, auth_response.authorization)
+
       end
 
       #
@@ -84,7 +77,21 @@ module ActiveMerchant #:nodoc:
       # - set nil for credit_card for quick purchase but requires `customerId` option
       #
       def authorize(money, credit_card, options={})
-        purchase(money, credit_card, options)
+
+        post = {}
+        add_credential(post)
+        add_invoice(post, money, options)
+        add_cc(post, credit_card, options)
+        add_address(post, options)
+        add_customer_data(post, options)
+        add_item(post, options)
+        add_transaction_id(post, options)
+        add_misc(post, options)
+        add_customer_mail(post, options)
+        add_divided_payment(post, options)
+
+        commit(:sale, post)
+
       end
 
       #
