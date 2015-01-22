@@ -6,7 +6,6 @@ require 'test_helper'
 #
 # This test class will test the options were CREDIT CARD details are supplied.
 #
-
 class RemoteCredoraxTest < Test::Unit::TestCase
   def setup
     @gateway = CredoraxGateway.new(fixtures(:credorax))

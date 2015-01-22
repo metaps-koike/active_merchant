@@ -1,12 +1,14 @@
 require 'test_helper'
 
+
 # == Description
 # Credorax supports both Credit Card based operations, and those where a token is provided
 # which represents Credit Card details previously stored with Credorax
 #
-# This test class will test the options were CREDIT CARD details are supplied.
+# This test class will test the options were tokens are used. Credit Card details will only be supplied
+# in the initial calls to generate the token.
 #
-class CredoraxTest < Test::Unit::TestCase
+class CredoraxTokenVariantTest < Test::Unit::TestCase
 
   MERCHANT_ID = 'CRED001'
   MD5_CIPHER_KEY = 'AAAA1AAA'
@@ -21,12 +23,15 @@ class CredoraxTest < Test::Unit::TestCase
 
   AUTHORIZATION_CODE = '102479'
 
+  TOKEN = '1A011FFFFFFFDFB4'
+  BAD_TOKEN = '111'
+
   def setup
 
     @gateway = CredoraxGateway.new(
-      merchant_id: MERCHANT_ID,
-      md5_cipher_key: MD5_CIPHER_KEY,
-      name_on_statement: NAME_ON_STATEMENT
+        merchant_id: MERCHANT_ID,
+        md5_cipher_key: MD5_CIPHER_KEY,
+        name_on_statement: NAME_ON_STATEMENT
     )
 
     @credit_card = credit_card(CARD_NUMBER,
@@ -55,40 +60,10 @@ class CredoraxTest < Test::Unit::TestCase
     @options = {
         order_id: @order_id,
         billing_address: @billing_address,
-        description: 'Store Item123' # Limited to 13 characters
+        description: 'Store Item123', # Limited to 13 characters
+        invoice: 'merchant invoice'
     }
 
-  end
-
-  def test_successful_purchase
-    @gateway.expects(:ssl_post).returns(successful_purchase_response)
-
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
-    @options[:email] = 'noone@example.com'
-
-    response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_success response
-
-    expected = {
-        :authorization_code=>AUTHORIZATION_CODE,
-        :response_id=>RESPONSE_ID,
-        :transaction_id=>TRANSACTION_ID,
-        :previous_request_id=>@order_id
-    }
-    assert_equal expected, response.authorization
-    assert_equal 'Transaction+has+been+executed+successfully.', response.message
-    assert response.test?
-  end
-
-  def test_failed_purchase
-    @gateway.expects(:ssl_post).returns(failed_9_card_not_identified)
-
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
-    @options[:email] = 'noone@example.com'
-    response = @gateway.purchase(@amount, @declined_card, @options)
-    assert_failure response
-    assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], response.error_code
-    assert_equal 'Card+cannot+be+identified', response.message
   end
 
   def test_successful_authorize_and_capture
@@ -100,13 +75,15 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
     expected = {
         :authorization_code=>AUTHORIZATION_CODE,
         :response_id=>RESPONSE_ID,
         :transaction_id=>TRANSACTION_ID,
-        :previous_request_id=>@order_id
+        :previous_request_id=>@order_id,
+        :token=>TOKEN
     }
     assert_equal expected, auth.authorization
     assert_equal 'Transaction+has+been+executed+successfully.', auth.message
@@ -122,7 +99,8 @@ class CredoraxTest < Test::Unit::TestCase
         :authorization_code=>'0',
         :response_id=>RESPONSE_ID,
         :transaction_id=>nil,
-        :previous_request_id=>@options[:order_id]
+        :previous_request_id=>@options[:order_id],
+        :token=>TOKEN
     }
     assert_equal expected, capture.authorization
     assert_equal 'Transaction+has+been+executed+successfully.', capture.message
@@ -134,6 +112,7 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
     response = @gateway.authorize(@amount, @declined_card, @options)
     assert_failure response
     assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], response.error_code
@@ -149,6 +128,7 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
 
@@ -162,7 +142,8 @@ class CredoraxTest < Test::Unit::TestCase
         :authorization_code=>'0',
         :response_id=>RESPONSE_ID,
         :transaction_id=>nil,
-        :previous_request_id=>@options[:order_id]
+        :previous_request_id=>@options[:order_id],
+        :token=>TOKEN
     }
     assert_equal expected, capture.authorization
     assert_equal 'Transaction+has+been+executed+successfully.', capture.message
@@ -178,6 +159,7 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
 
@@ -198,15 +180,16 @@ class CredoraxTest < Test::Unit::TestCase
     assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.', capture.message
   end
 
-  def test_failed_capture_bad_reference
+  def test_failed_capture_bad_token
     @gateway.expects(:ssl_post).times(2).returns(
         successful_authorize_response
     ).then.returns(
-        failed_capture_response_bad_reference
+        failed_capture_response_bad_token
     )
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
 
@@ -218,64 +201,134 @@ class CredoraxTest < Test::Unit::TestCase
         authorization_code: auth.authorization[:authorization_code],
         response_id: auth.authorization[:response_id],
         transaction_id: auth.authorization[:transaction_id],
-        token: auth.authorization[:token],
-        previous_request_id: '1'
+        token: '111',
+        previous_request_id: auth.authorization[:previous_request_id]
     }
     assert capture = @gateway.capture(nil, @bad_auth, @options)
     assert_failure capture
     assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], capture.error_code
-    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+%5B1%2F1A1406251%5D+has+not+been+found.', capture.message
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+for+the+account+%5B111%5D+has+not+been+found.', capture.message
+  end
+
+  def test_successful_purchase
+    @gateway.expects(:ssl_post).times(2).returns(
+        successful_authorize_response
+    ).then.returns(
+        successful_purchase_response
+    )
+
+    @options[:ip] = '1.1.1.1' # Fake IP for tests
+    @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
+    auth = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success auth
+
+    @options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        ip: '1.1.1.1', # Fake IP for tests
+        email: 'noone@example.com',
+        description: 'Store Item123', # Limited to 13 characters
+        invoice: 'merchant invoice'
+    }
+    response = @gateway.purchase(@amount, auth.authorization[:token], @options)
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+    assert response.test?
+  end
+
+  def test_failed_purchase
+    @gateway.expects(:ssl_post).times(2).returns(
+        successful_authorize_response
+    ).then.returns(
+        failed_purchase_response_invalid_token
+    )
+
+    @options[:ip] = '1.1.1.1' # Fake IP for tests
+    @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
+    auth = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success auth
+
+    @options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        ip: '1.1.1.1', # Fake IP for tests
+        email: 'noone@example.com',
+        description: 'Store Item123', # Limited to 13 characters
+        invoice: 'merchant invoice'
+    }
+    response = @gateway.purchase(@amount, BAD_TOKEN, @options)
+    assert_failure response
+    assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], response.error_code
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+for+the+account+%5B111111111%5D+has+not+been+found.', response.message
   end
 
   def test_successful_refund
-    @gateway.expects(:ssl_post).times(2).returns(
-        successful_purchase_response
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_authorize_response
+    ).then.returns(
+        successful_capture_response
     ).then.returns(
         successful_refund_response
     )
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
-    purchase = @gateway.purchase(@amount, @credit_card, @options)
-    assert_success purchase
+    @options[:create_token] = true
+    auth = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success auth
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1' # Fake IP for tests
     }
-    assert refund = @gateway.refund(nil, purchase.authorization, @options)
+    assert capture = @gateway.capture(nil, auth.authorization, @options)
+    assert_success capture
+
+    @options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        ip: '1.1.1.1' # Fake IP for tests
+    }
+    assert refund = @gateway.refund(nil, capture.authorization, @options)
     assert_success refund
     assert_equal 'Transaction+has+been+executed+successfully.', refund.message
-    assert refund.test?
   end
 
   def test_failed_refund_malformed_parameter
-    @gateway.expects(:ssl_post).times(2).returns(
-        successful_purchase_response
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_authorize_response
+    ).then.returns(
+        successful_capture_response
     ).then.returns(
         failed_refund_response_malformed_parameter
     )
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
-    purchase = @gateway.purchase(@amount, @credit_card, @options)
-    assert_success purchase
+    @options[:create_token] = true
+    auth = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success auth
+
+    @options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        ip: '1.1.1.1' # Fake IP for tests
+    }
+    assert capture = @gateway.capture(nil, auth.authorization, @options)
+    assert_success capture
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1' # Fake IP for tests
     }
     @bad_auth = {
-        authorization_code: purchase.authorization[:authorization_code],
-        response_id: purchase.authorization[:response_id],
-        transaction_id: purchase.authorization[:transaction_id],
-        token: purchase.authorization[:token],
+        authorization_code: auth.authorization[:authorization_code],
+        response_id: auth.authorization[:response_id],
+        transaction_id: auth.authorization[:transaction_id],
+        token: auth.authorization[:token],
         previous_request_id: ''
     }
-    response = @gateway.refund(nil, @bad_auth, @options)
-    assert_failure response
-    assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], response.error_code
-    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.', response.message
+    assert refund = @gateway.refund(nil, @bad_auth, @options)
+    assert_failure refund
+    assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], refund.error_code
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.', refund.message
   end
 
   def test_successful_void
@@ -287,6 +340,7 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
 
@@ -297,7 +351,6 @@ class CredoraxTest < Test::Unit::TestCase
     assert void = @gateway.void(auth.authorization, @options)
     assert_success void
     assert_equal 'Transaction+has+been+executed+successfully.', void.message
-    assert void.test?
   end
 
   def test_failed_void
@@ -309,6 +362,7 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
+    @options[:create_token] = true
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
 
@@ -325,56 +379,56 @@ class CredoraxTest < Test::Unit::TestCase
     }
     assert void = @gateway.void(@bad_auth, @options)
     assert_failure void
-    assert void.test?
-  end
-
-  def test_failed_verify
-    assert_raise(NotImplementedError){ @gateway.verify(@credit_card, @options) }
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.', void.message
   end
 
   private
 
   def successful_purchase_response
-    "M=#{MERCHANT_ID}&O=1&T=01%2F22%2F2015+01%3A13%3A40&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&b2=1&z1=#{RESPONSE_ID}&z13=#{TRANSACTION_ID}&z14=N&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}&z5=0&z6=00&z9=-&K=7ac3f12d3bd73898715b48d66b4bb432"
+    "M=#{MERCHANT_ID}&O=11&T=01%2F22%2F2015+06%3A26%3A51&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&g1=#{TOKEN}&z1=#{RESPONSE_ID}&z13=#{TRANSACTION_ID}&z14=N&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}&z5=0&z6=00&z9=-&K=72e5b00687ea278514885e9133c85323"
+  end
+
+  def failed_purchase_response_invalid_token
+    "M=#{MERCHANT_ID}&O=11&T=01%2F22%2F2015+06%3A30%3A03&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=-&g1=#{BAD_TOKEN}&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+for+the+account+%5B111111111%5D+has+not+been+found.&K=ca0df902403cb81312ec6cc9cf1c5d03"
   end
 
   def failed_9_card_not_identified
-    "z2=-9&z3=Card+cannot+be+identified&T=01%2F22%2F2015+01%3A48%3A08"
+    "z2=-9&z3=Card+cannot+be+identified&T=01%2F22%2F2015+05%3A39%3A18"
   end
 
   def successful_authorize_response
-    "M=#{MERCHANT_ID}&O=2&T=01%2F22%2F2015+02%3A28%3A51&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&b2=1&z1=#{RESPONSE_ID}&z13=#{TRANSACTION_ID}&z14=N&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}=0&z6=00&z9=-&K=30ed6b9dbb12a388f1aab03e150adb7e"
+    "M=#{MERCHANT_ID}&O=28&T=01%2F22%2F2015+05%3A28%3A07&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&b2=1&g1=#{TOKEN}&z1=#{RESPONSE_ID}&z13=#{TRANSACTION_ID}&z14=N&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}&z5=0&z6=00&z9=-&K=a33d7f0d7948afbdeba7b38fc77a5930"
   end
 
   def successful_capture_response
-    "M=#{MERCHANT_ID}&O=3&T=01%2F22%2F2015+02%3A28%3A53&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&z1=#{RESPONSE_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=0&z5=0&z6=00&K=c24c3fc4fb78cee7f9a7b356233bf777"
+    "M=#{MERCHANT_ID}&O=29&T=01%2F22%2F2015+05%3A28%3A09&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&g1=#{TOKEN}&z1=#{RESPONSE_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=0&z5=0&z6=00&K=8967be99a2d04c695fca8f74b9d48f5a"
   end
 
   def successful_partial_capture_response
-    "M=#{MERCHANT_ID}&O=3&T=01%2F22%2F2015+02%3A54%3A00&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{(@amount_as_euros-10).to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&z1=#{RESPONSE_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=0&z5=0&z6=00&K=c27391540a3d7fa092a90f72f6e0accb"
+    "M=#{MERCHANT_ID}&O=29&T=01%2F22%2F2015+05%3A50%3A38&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{(@amount_as_euros-10).to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&g1=#{TOKEN}&z1=#{RESPONSE_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=0&z5=0&z6=00&K=076591587ec8534e87aa9902072bed1d"
   end
 
   def failed_capture_response_malformed_parameter
-    "M=#{MERCHANT_ID}&O=3&T=01%2F22%2F2015+03%3A01%3A54&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=EUR&b1=-&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&K=456e625fd9c84d3230cc26c7c5a106e1"
+    "M=#{MERCHANT_ID}&O=29&T=01%2F22%2F2015+06%3A00%3A11&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=EUR&b1=-&g1=g1=#{TOKEN}&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&K=b3500dfd918b636bf5d468f72ec82c33"
   end
 
-  def failed_capture_response_bad_reference
-    "M=#{MERCHANT_ID}&O=3&T=01%2F22%2F2015+03%3A05%3A34&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=EUR&b1=-&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+%5B1%2F1A1406251%5D+has+not+been+found.&K=6fcee268e9789d7028ac3b49b57628fe"
+  def failed_capture_response_bad_token
+    "M=#{MERCHANT_ID}&O=29&T=01%2F22%2F2015+06%3A08%3A16&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=EUR&b1=-&g1=#{BAD_TOKEN}&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+for+the+account+%5B111%5D+has+not+been+found.&K=3a177642a88ef3aa1d8520fb85073f1f"
   end
 
   def successful_refund_response
-    "M=#{MERCHANT_ID}&O=9&T=01%2F22%2F2015+03%3A15%3A06&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&z1=#{RESPONSE_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}&z5=0&z6=00&z9=-&K=3f1db9e18db0a5e3397c84bb3d5c0291"
+    "M=#{MERCHANT_ID}&O=15&T=01%2F22%2F2015+06%3A43%3A19&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&g1=#{TOKEN}&z1=#{RESPONSE_ID}&z13=#{TRANSACTION_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}&z5=0&z6=00&z9=-&K=7f914baec6227e3093a3f8b7c5502e08"
   end
 
   def failed_refund_response_malformed_parameter
-    "M=#{MERCHANT_ID}&O=9&T=01%2F22%2F2015+03%3A22%3A41&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=-&b1=-&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&K=281eb6e9d0ce877085035a1b3b0bb2bd"
+    "M=#{MERCHANT_ID}&O=15&T=01%2F22%2F2015+06%3A49%3A21&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=EUR&b1=-&g1=#{TOKEN}&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&K=81ab7e3a0d5ea0a14e7168ab7f959dce"
   end
 
   def successful_void_response
-    "M=#{MERCHANT_ID}&O=4&T=01%2F22%2F2015+03%3A41%3A08&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&z1=#{RESPONSE_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}&z5=0&z6=00&z9=-&K=dcc2bd3c3e3389838ed6c81d4faa41a3"
+    "M=#{MERCHANT_ID}&O=14&T=01%2F22%2F2015+06%3A57%3A01&V=413&a1=#{@options[:order_id]}&a2=2&a4=#{@amount_as_euros.to_s}&a5=EUR&b1=#{CARD_NUMBER_MASKED}&g1=#{TOKEN}&z1=#{RESPONSE_ID}&z2=0&z3=Transaction+has+been+executed+successfully.&z4=#{AUTHORIZATION_CODE}&z5=0&z6=00&z9=-&K=275fff5cb4419b4a18932fa6152c06a0"
   end
 
   def failed_void_response
-    "M=#{MERCHANT_ID}&O=4&T=01%2F22%2F2015+03%3A49%3A10&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=-&b1=-&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&K=cf1d2698dc1e96f73285327c28457aaf"
+    "M=#{MERCHANT_ID}&O=14&T=01%2F22%2F2015+07%3A01%3A29&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=EUR&b1=-&g1=#{TOKEN}&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&K=94b39be2233a367ebadb947e4df579fa"
   end
 end
