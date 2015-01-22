@@ -30,6 +30,7 @@ module ActiveMerchant #:nodoc:
 
         capture(money, auth_response.authorization)
 
+        auth_response
       end
 
       #
