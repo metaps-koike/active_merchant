@@ -25,6 +25,31 @@ module ActiveMerchant #:nodoc:
         straight_sale:                  '6'
       }
 
+      # Codes returned in the 'z2' response parameter
+      RESULT_CODES = {
+        missing_valid_3d_secure_data:         '-13',
+        missing_card_secure_code:             '-12',
+        currency_not_supported_by_merchant:   '-11',
+        unclassified_error:                   '-10',
+        parameter_malformed:                  '-9',
+        package_signature_malformed:          '-8',
+        no_response_from_gateway:             '-7',
+        transaction_rejected:                 '-5',
+        account_status_not_updated:           '-3',
+        account_does_not_exist:               '-2',
+        account_already_exists:               '-1',
+        success:                              '0',
+        transaction_denied:                   '1',
+        transaction_denied_high_fraud_risk:   '2',
+        transaction_denied_high_avs_risk:     '03',
+        transaction_denied_interchange_timeout: '04',
+        transaction_declined:                 '05',
+        redirect_url_issued:                  '7',
+        transaction_denied_luhn_check_fail:   '9',
+        transaction_partially_approved:       '10',
+        transaction_3d_enrolled:              '100'
+      }
+
       self.test_url = 'https://intconsole.credorax.com/intenv/service/gateway'
       self.live_url = 'https://example.com/live' # TODO
 
@@ -300,13 +325,18 @@ module ActiveMerchant #:nodoc:
               authorization: authorization_from(response),
               test: test?,
               cvv_result: cvv_result_from(response),
-              avs_response: avs_result_from(response)
+              avs_response: avs_result_from(response),
+              error_code: result_code_from(response)
           }
         )
       end
 
       def success_from(response)
-        response['z2'].to_s == '0'
+        result_code_from(response) == '0'
+      end
+
+      def result_code_from(response)
+        response['z2'].to_s
       end
 
       def message_from(response)
