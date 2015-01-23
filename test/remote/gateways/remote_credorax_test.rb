@@ -200,7 +200,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     gateway = CredoraxGateway.new(
         merchant_id: 'fake',
         md5_cipher_key: 'fake',
-        name_on_statement: 'fake'
+        name_on_statement: 'fake',
+        live_url: 'http://www.example.com'
     )
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'

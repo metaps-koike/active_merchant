@@ -31,7 +31,8 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
     @gateway = CredoraxGateway.new(
         merchant_id: MERCHANT_ID,
         md5_cipher_key: MD5_CIPHER_KEY,
-        name_on_statement: NAME_ON_STATEMENT
+        name_on_statement: NAME_ON_STATEMENT,
+        live_url: 'http://www.example.com'
     )
 
     @credit_card = credit_card(CARD_NUMBER,

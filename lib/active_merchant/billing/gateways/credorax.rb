@@ -1,5 +1,27 @@
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
+
+    #
+    # == Description
+    # The CredoraxGateway class supports interaction with {Credorax's}[http://www.credorax.com] {ePower Gateway API}[http://epower.credorax.com/home]ePower Gateway API.
+    # This ActiveMerchant Gateway class supports two forms of interaction with Credorax.
+    #
+    # * Basic Operations - Credit Card must be supplied in Purchase and Authorisation calls, Previous referral code for other options
+    # * Card-on-file Operations - Credit Card details are stored with Credorax and referenced in future opertations with a Card Token
+    #
+    # This gateway class uses the following ActiveMerchant method to Credorax operation mapping
+    # The standard list of gateway functions that most concrete gateway subclasses implement is:
+    #
+    # | ActiveMerchant  |  Basic                   |  Card-on-file
+    # | --------------- | ------------------------ | --------------------------------
+    # | purchase        |  [1] Sale                |  [11] Use Token - Sale
+    # | authorize       |  [2] Authorisation       |  [12] Use Token - Auth
+    # | capture         |  [3] Capture             |  [13] Use Token - Capture
+    # | void            |  [4] Authorisation Void  |  [14] Token Auth Void
+    # | refund          |  [9] Capture Void        |  [15] Token Referral Credit
+    # | store           |  N/A                     |  [10] Create Token
+    #
+    #
     class CredoraxGateway < Gateway
 
       ACTIONS = {
@@ -54,19 +76,77 @@ module ActiveMerchant #:nodoc:
       self.live_url = 'https://example.com/live' # TODO
 
       self.supported_countries = ['US', 'JP', 'CA', 'GB'] # TODO
-      self.default_currency = 'EUR' # TODO
-      self.supported_cardtypes = [:visa, :master] # TODO
+      self.default_currency = 'EUR'
+      self.supported_cardtypes = [:visa, :master, :jcb]
 
       self.homepage_url = 'http://epower.credorax.com'
       self.display_name = 'Credorax'
 
       STANDARD_ERROR_CODE_MAPPING = {}
 
+      # Initialize the Gateway
+      #
+      # The gateway requires that valid data defined
+      # in the +options+ hash.
+      #
+      # === Options
+      #
+      #  * <tt>:merchant_id => +string+</tt> - This will be assigned to you from Credorax. There is one per currency.
+      #  * <tt>:md5_cipher_key => +string+</tt> - This will be assigned to you from Credorax and is used to generate parameter 'K' before sending API calls.
+      #  * <tt>:name_on_statement => +string+</tt> Used to define the Billing Descriptor, by setting an 'DBA' (see "ePower Payment API - Implementation Guide Version 1.2 Apr 2013")
+      #  * <tt>:live_url => +string+</tt> Credorax will only supply this to you after you have passed certification with them.
+      #  * <tt>:test => +true+ or +false+</tt> - Force test transactions
+      #
+      # For example:
+      # ```
+      # @gateway = CredoraxGateway.new(
+      #     merchant_id: 'COMPX840',
+      #     md5_cipher_key: 'A23SD5',
+      #     name_on_statement: 'Company X'
+      # )
+      # ```
       def initialize(options={})
-        requires!(options, :md5_cipher_key, :merchant_id, :name_on_statement)
+        requires!(options, :md5_cipher_key, :merchant_id, :name_on_statement, :live_url)
         super
       end
 
+      # Perform a purchase.
+      #
+      # This method will either send a "[1] Sale" or "[11] Use Token - Sale" operation.
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === Options
+      #
+      #  * <tt>:email => +string+</tt> - Email address of the cardholder.
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement. Max length is 13 characters.
+      #
+      # ==== [1] Sale
+      #
+      # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
+      # Specify the:
+      #  * number
+      #  * brand
+      #  * month
+      #  * year
+      #  * verification_value
+      #  * name
+      #
+      # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
+      #  * <tt>:city</tt> - The Cardholder's billing address city.
+      #  * <tt>:state</tt> - State must be Subdivision Code (ISO-3166-2), max length 3 alphanumeric characters
+      #  * <tt>:country</tt> - Country Code (ISO-3166)
+      #  * <tt>:zip</tt> Billing Country PostCode
+      #
+      # ==== [11] Use Token - Sale
+      #
+      # To use this operation, +payment+ should be a +String+ representation of a Credorax 'token' that is defined in the 'g1' parameter.
+      #
+      # +options[:invoice]+ can be optionally specified, and should be used to store the Merchant Invoice ID.
+      #
+      # Cardholder billing address details are not needed.
+      #
       def purchase(money, payment, options={})
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
@@ -316,7 +396,7 @@ module ActiveMerchant #:nodoc:
 
       def commit(parameters)
 
-        url = (test? ? test_url : live_url)
+        url = (test? ? test_url : @options[:live_url])
 
         # Add Merchant ID, then create the MD5 message and add to parameters
         parameters['M'] = @options[:merchant_id]    # MerchantID
