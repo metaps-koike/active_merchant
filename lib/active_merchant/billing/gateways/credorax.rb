@@ -115,6 +115,11 @@ module ActiveMerchant #:nodoc:
       # This method will either send a "[1] Sale" or "[11] Use Token - Sale" operation.
       # The method requires that valid data is defined in the +options+ hash.
       #
+      # === money
+      #
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
+      #
       # === Options
       #
       #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
@@ -158,11 +163,6 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:transaction_id</tt>
       #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
       #
-      authorization_code: response['z4'],
-          response_id: response['z1'],
-          transaction_id: response['z13'],
-          previous_request_id: response['a1']
-
       def purchase(money, payment, options={})
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
@@ -194,6 +194,11 @@ module ActiveMerchant #:nodoc:
       #
       # This method will either send a "[2] Authorise" or "[12] Use Token - Auth" operation.
       # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
       #
       # === Options
       #
@@ -266,6 +271,43 @@ module ActiveMerchant #:nodoc:
         commit(post)
       end
 
+      # Perform a capture
+      #
+      # This method will either send a "[3] Authorise" or "[13] Use Token - Capture" operation.
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
+      # This can be respecified, and must a value that is equal to or less than the value specied in an authorization call.
+      #
+      # === Options
+      #
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # ==== [3] Capture
+      #
+      # To use this operation, +authorization+ should NOT contain a populated +:token+ key/value pair.
+      #
+      # Cardholder billing address details are not needed.
+      #
+      # ==== [13] Use Token - Capture
+      #
+      # To use this operation, +authorization+ should contain a populated +:token+ key/value pair.
+      #
+      # Cardholder billing address details are not needed.
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:token</tt> - This is not returned for [3] - Capture
+      #  * <tt>:authorization_code</tt> - This will be set to 0
+      #  * <tt>:response_id</tt>
+      #  * <tt>:transaction_id</tt> - This will be set to nil
+      #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
+      #
       def capture(money, authorization, options={})
 
         if authorization.has_key?(:token) && !authorization[:token].blank?
@@ -348,6 +390,42 @@ module ActiveMerchant #:nodoc:
         commit(post)
       end
 
+      # Store a Credit Card and obtain a token that will be used to represent it
+      #
+      # This method will either send a "[3] Authorise" or "[13] Use Token - Capture" operation.
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === Options
+      #
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #  * <tt>:email => +string+</tt> - Email address of the cardholder.
+      #
+      #  +payment+ is a ActiveMerchant::Billing::CreditCard instance.
+      # Specify the:
+      #  * number
+      #  * brand
+      #  * month
+      #  * year
+      #  * verification_value
+      #  * name
+      #
+      # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
+      #  * <tt>:city</tt> - The Cardholder's billing address city.
+      #  * <tt>:state</tt> - State must be Subdivision Code (ISO-3166-2), max length 3 alphanumeric characters
+      #  * <tt>:country</tt> - Country Code (ISO-3166)
+      #  * <tt>:zip</tt> Billing Country PostCode
+      #
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:token</tt>
+      #  * <tt>:authorization_code</tt>
+      #  * <tt>:response_id</tt>
+      #  * <tt>:transaction_id</tt>
+      #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
+      #
       def store(payment, options = {})
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
@@ -359,6 +437,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, 100, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response)
           add_payment(post, payment)
           add_customer_data(post, options)
+          add_billing_address_data(post, options)
         else
           raise ArgumentError, 'payment must be a Credit card (ActiveMerchant::Billing::CreditCard)'
         end
