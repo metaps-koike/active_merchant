@@ -117,7 +117,6 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:email => +string+</tt> - Email address of the cardholder.
       #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
       #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement. Max length is 13 characters.
@@ -139,6 +138,9 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:country</tt> - Country Code (ISO-3166)
       #  * <tt>:zip</tt> Billing Country PostCode
       #
+      # Cardholder Email address MUST be specified in +options+
+      #  * <tt>:email => +string+</tt> - Email address of the cardholder.
+      #
       # ==== [11] Use Token - Sale
       #
       # To use this operation, +payment+ should be a +String+ representation of a Credorax 'token' that is defined in the 'g1' parameter.
@@ -147,6 +149,20 @@ module ActiveMerchant #:nodoc:
       #
       # Cardholder billing address details are not needed.
       #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:token</tt> - This is not returned for [1] - Sale
+      #  * <tt>:authorization_code</tt>
+      #  * <tt>:response_id</tt>
+      #  * <tt>:transaction_id</tt>
+      #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
+      #
+      authorization_code: response['z4'],
+          response_id: response['z1'],
+          transaction_id: response['z13'],
+          previous_request_id: response['a1']
+
       def purchase(money, payment, options={})
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
@@ -174,6 +190,53 @@ module ActiveMerchant #:nodoc:
         commit(post)
       end
 
+      # Perform an authorization
+      #
+      # This method will either send a "[2] Authorise" or "[12] Use Token - Auth" operation.
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === Options
+      #
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # ==== [2] Authorise
+      #
+      # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
+      # Specify the:
+      #  * number
+      #  * brand
+      #  * month
+      #  * year
+      #  * verification_value
+      #  * name
+      #
+      # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
+      #  * <tt>:city</tt> - The Cardholder's billing address city.
+      #  * <tt>:state</tt> - State must be Subdivision Code (ISO-3166-2), max length 3 alphanumeric characters
+      #  * <tt>:country</tt> - Country Code (ISO-3166)
+      #  * <tt>:zip</tt> Billing Country PostCode
+      #
+      # Cardholder Email address MUST be specified in +options+
+      #  * <tt>:email => +string+</tt> - Email address of the cardholder.
+      #
+      # ==== [12] Use Token - Auth
+      #
+      # To use this operation, +payment+ should be a +String+ representation of a Credorax 'token' that is defined in the 'g1' parameter.
+      #
+      # +options[:invoice]+ can be optionally specified, and should be used to store the Merchant Invoice ID.
+      #
+      # Cardholder billing address details are not needed.
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:token</tt> - This is not returned for [2] - Authorisation
+      #  * <tt>:authorization_code</tt>
+      #  * <tt>:response_id</tt>
+      #  * <tt>:transaction_id</tt>
+      #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
+      #
       def authorize(money, payment, options={})
         # Credit will be supplied in payment
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
