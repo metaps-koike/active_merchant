@@ -37,6 +37,13 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     }
   end
 
+  def test_failure_store
+    @options[:ip] = '1.1.1.1' # Fake IP for tests
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = @amount
+    assert_raise(ArgumentError){  @gateway.store('111111', @options) }
+  end
+
   def test_successful_purchase
     @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'

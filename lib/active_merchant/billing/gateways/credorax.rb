@@ -8,12 +8,12 @@ module ActiveMerchant #:nodoc:
           capture:                      '3',
           authorisation_void:           '4',
           capture_void:                 '9',
-          #create_token:                '10', # TODO Implement in future code? Map onto Gateway.store
+          create_token:                 '10',
           use_token_sale:               '11',
+          use_token_auth:               '12',
+          use_token_capture:            '13',
           token_auth_void:              '14',
           token_referral_credit:        '15',
-          create_token_auth:            '28',
-          create_token_capture:         '29'
       }
 
       TRANSACTION_TYPES = {
@@ -95,31 +95,8 @@ module ActiveMerchant #:nodoc:
       end
 
       def authorize(money, payment, options={})
-
         # Credit will be supplied in payment
-        # Uses a non-standard option, a ':create_token boolean'
-
-        if options.has_key?(:create_token) && options[:create_token]
-          # Create Token with Auth
-          # Billing Address must be supplied in options and
-          # - The country must be supplied
-          # - The zip code should be supplied, otherwise it will default to '0000'
-          requires!(options, :email, :ip, :order_id, :invoice)
-          requires!(options, :billing_address)
-          requires!(options[:billing_address], :country)
-          if options[:billing_address][:zip].nil?
-            options[:billing_address][:zip] = '0000'
-          end
-          post = {
-              'O' => ACTIONS[:create_token_auth],     # Operation Code
-              'a9' => TRANSACTION_TYPES[:straight_sale], # Makes equivalent to ACTIONS[:authorisation]
-          }
-          add_request_id(post, options)
-          add_payment(post, payment)                  # Card information
-          add_invoice(post, money, options)           # Item information
-          add_customer_data(post, options)
-          add_billing_address_data(post, options)     # Billing Address Info
-        else
+        if payment.is_a?(ActiveMerchant::Billing::CreditCard)
           # Authorisation
           requires!(options, :email, :ip, :order_id)
           post = {
@@ -127,6 +104,17 @@ module ActiveMerchant #:nodoc:
           }
           add_request_id(post, options)
           add_payment(post, payment)                  # Card information
+          add_invoice(post, money, options)           # Item information
+          add_customer_data(post, options)
+          add_billing_address_data(post, options)     # Billing Address Info
+        else
+          # Use Token - Auth
+          requires!(options, :ip, :order_id)
+          post = {
+              'O' => ACTIONS[:use_token_auth],     # Operation Code
+          }
+          add_request_id(post, options)
+          add_token(post, payment)
           add_invoice(post, money, options)           # Item information
           add_customer_data(post, options)
           add_billing_address_data(post, options)     # Billing Address Info
@@ -138,10 +126,10 @@ module ActiveMerchant #:nodoc:
       def capture(money, authorization, options={})
 
         if authorization.has_key?(:token) && !authorization[:token].blank?
-          # Create Token with Capture
+          # Use Token - Capture
           requires!(options, :ip, :order_id)
           post = {
-              'O' => ACTIONS[:create_token_capture],  # Operation Code
+              'O' => ACTIONS[:use_token_capture],  # Operation Code
           }
           add_request_id(post, options)
           add_token(post, authorization[:token])
@@ -215,6 +203,25 @@ module ActiveMerchant #:nodoc:
         end
 
         commit(post)
+      end
+
+      def store(payment, options = {})
+
+        if payment.is_a?(ActiveMerchant::Billing::CreditCard)
+          requires!(options, :ip, :order_id, :email)
+          post = {
+              'O' => ACTIONS[:create_token],       # Operation Code
+          }
+          add_request_id(post, options)
+          add_invoice(post, 100, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response)
+          add_payment(post, payment)
+          add_customer_data(post, options)
+        else
+          raise ArgumentError, 'payment must be a Credit card (ActiveMerchant::Billing::CreditCard)'
+        end
+
+        commit(post)
+
       end
 
       def verify(credit_card, options={})
