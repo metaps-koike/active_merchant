@@ -280,7 +280,7 @@ module ActiveMerchant #:nodoc:
       #
       # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
       # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
-      # This can be respecified, and must a value that is equal to or less than the value specied in an authorization call.
+      # This can be respecified, and must a value that is equal to or less than the value specified in an authorization call.
       #
       # === Options
       #
@@ -336,6 +336,45 @@ module ActiveMerchant #:nodoc:
         commit(post)
       end
 
+      # Perform a refund of capture or sale.
+      #
+      # This method will either send a "[9] Capture Void" or "[15] Token Referral Credit" operation.
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Only used by "[15] Token Referral Credit", ignored by "[9] Capture Void"
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
+      # The amount specified allows a partial refund.
+      # In the case of "[9] Capture Void", it is ignored because only a full refund is supported.
+      #
+      # === Options
+      #
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # ==== [9] Capture Void
+      #
+      # To use this operation, +authorization+ should NOT contain a populated +:token+ key/value pair.
+      #
+      # Cardholder billing address details are not needed.
+      #
+      # ==== [15] Token Referral Credit
+      #
+      # To use this operation, +authorization+ should contain a populated +:token+ key/value pair.
+      #
+      # Cardholder billing address details are not needed.
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:token</tt> - This is not returned for [9] Capture Void
+      #  * <tt>:authorization_code</tt> - This will be set to 0
+      #  * <tt>:response_id</tt>
+      #  * <tt>:transaction_id</tt> - This will be set to nil
+      #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
+      #
       def refund(money, authorization, options={})
 
         if authorization.has_key?(:token) && !authorization[:token].blank?
@@ -364,6 +403,43 @@ module ActiveMerchant #:nodoc:
         commit(post)
       end
 
+      # Perform a void of an Authorisation
+      #
+      # This method will either send a "[4] Authorisation Void" or "[14] Token Auth Void" operation.
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Only used by "[14] Token Auth Void", ignored by "[4] Authorisation Void"
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
+      #
+      # === Options
+      #
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # ==== [4] Authorisation Void
+      #
+      # To use this operation, +authorization+ should NOT contain a populated +:token+ key/value pair.
+      #
+      # Cardholder billing address details are not needed.
+      #
+      # ==== [14] Token Auth Void
+      #
+      # To use this operation, +authorization+ should contain a populated +:token+ key/value pair.
+      #
+      # Cardholder billing address details are not needed.
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:token</tt> - This is not returned for [4] Authorisation Void
+      #  * <tt>:authorization_code</tt> - This will be set to 0
+      #  * <tt>:response_id</tt>
+      #  * <tt>:transaction_id</tt> - This will be set to nil
+      #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
+      #
       def void(authorization, options={})
 
         if authorization.has_key?(:token) && !authorization[:token].blank?
