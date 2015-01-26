@@ -139,6 +139,13 @@ commercegate:
 conekta:
   key: key_eYvWV7gSDkNYXsmr
 
+# Replace these credentials, see comment at top of file
+credorax:
+  merchant_id: 'one_per_currency'                # This will be assigned to you from Credorax. There is one per currency.
+  md5_cipher_key: 'md5_cipher_key'               # This will be assigned to you from Credorax.
+  name_on_statement: 'name_on_statement_aka_dba' # Used to define the Billing Descriptor (see "ePower Payment API - Implementation Guide Version 1.2 Apr 2013")
+  live_url: 'https://www.example.com'
+
 # To get 100% passing Cybersource remote tests, you must ask
 # Cybersource support to enable the recurring and pinless debit
 # services on your test account.
