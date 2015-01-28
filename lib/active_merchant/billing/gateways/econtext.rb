@@ -59,6 +59,28 @@ module ActiveMerchant #:nodoc:
           authorization_error:                  '-7'
       }
 
+      CARD_ACQUIRERS = {
+        nicos:            '2s50001', # Mitsubishi UFJ NICOS (ニコス)
+        smbc_cc:          '2a99663', # Sumitomo Mitsui Card Company
+        nicos_ufj:        '2a99664', # Mitsubishi UFJ NICOS (UFJ)
+        saison:           '2S10035', # Credit Saison
+        nicos_dc:         '2a99662', # Mitsubishi UFJ NICOS (DC)
+        uc:               '2a99665', # UC
+        jcb:              '2a99661', #JCB
+        amex:             '2a99819', # American Express
+        aeon:             '2S63046', # AEON
+        aplus:            '2s59681', # Aplus
+        omc:              '2s63141', # OMC (Cedyna)
+        toyota_finance:   '2s77334', # Toyota Finance
+        central_finance:  '2s58588', # Central Finance (Cedyna)
+        sumishin:         '2S49631', # Sumishin Life Card
+        jaccs:            '2s59110', # JACCS
+        life_Card:        '2959876', # Life Card
+        diners:           '2a99660', # DINERS (Citi card Japan)
+        rakuten:          '2S59875', # Rakuten Card
+        orico:            '2s59880', # Orico
+      }
+
       self.test_url = 'https://test.econ.ne.jp/odr/rcv/rcv_odr.aspx'
       #self.live_url = 'https://example.com/live' - NOT USED
 
@@ -99,64 +121,14 @@ module ActiveMerchant #:nodoc:
       end
 
       def purchase(money, payment, options={})
-
-
-
-        # add_address(post, payment, options)
-        # add_customer_data(post, options)
-
-        if payment.is_a?(ActiveMerchant::Billing::CreditCard)
-          requires!(options, :order_id, :description)
-          # Non-membership
-          post = {
-              'paymtCode' => PAYMENT_CODE[:card_non_membership],
-              'fncCode' => FNC_CODES[:cash_card_reg_auth_sale],
-              'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
-              'sessionID' => options[:order_id] # Same as the order_id
-              # TODO - Need to fix this
-              #'orderDate' => Time.now.getutc.strftime("%Y/%m/%d %H:%M:%S") #yyyy/mm/dd hh:mm:ss
-          }
-          add_invoice(post, money, options)
-          add_econ_payment_page_settings(post, options)
-          add_payment(post, payment)
-        else
-          # Membership
-          requires!(options, :order_id, :description)
-        end
-        commit(post, options)
+        purchase_or_auth(FNC_CODES[:cash_card_reg_auth_sale], money, payment, options)
       end
 
       def authorize(money, payment, options={})
-        # add_address(post, payment, options)
-        # add_customer_data(post, options)
-
-        if payment.is_a?(ActiveMerchant::Billing::CreditCard)
-          requires!(options, :order_id, :description)
-          # Non-membership
-          post = {
-              'paymtCode' => PAYMENT_CODE[:card_non_membership],
-              'fncCode' => FNC_CODES[:card_register_and_auth],
-              'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
-              'sessionID' => options[:order_id], # Same as the order_id
-              # TODO - Need to fix this
-              #'orderDate' => Time.now.getutc.strftime("%Y/%m/%d %H:%M:%S") #yyyy/mm/dd hh:mm:ss
-          }
-          add_invoice(post, money, options)
-          add_econ_payment_page_settings(post, options)
-          add_payment(post, payment)
-        else
-          # Membership
-          requires!(options, :order_id, :description)
-        end
-        commit(post, options)
+        purchase_or_auth(FNC_CODES[:card_register_and_auth], money, payment, options)
       end
 
       def capture(money, authorization, options={})
-        # add_invoice(post, money, options)
-        # add_payment(post, payment)
-        # add_address(post, payment, options)
-        # add_customer_data(post, options)
-
         if true # TODO
           requires!(options, :order_id)
           # Non-membership
@@ -221,7 +193,7 @@ module ActiveMerchant #:nodoc:
         else
           raise ArgumentError, 'payment must be a Credit card (ActiveMerchant::Billing::CreditCard)'
         end
-        commit(post)
+        commit(post, options)
       end
 
       def verify(credit_card, options={})
@@ -230,11 +202,34 @@ module ActiveMerchant #:nodoc:
 
       private
 
-      def add_customer_data(post, options)
-        # map the token onto cduserID for token versions
-      end
-
-      def add_address(post, creditcard, options)
+      def purchase_or_auth(action, money, payment, options={})
+        if payment.is_a?(ActiveMerchant::Billing::CreditCard)
+          requires!(options, :order_id, :description)
+          # Non-membership
+          post = {
+              'paymtCode' => PAYMENT_CODE[:card_non_membership],
+              'fncCode' => action,
+              'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
+              'sessionID' => options[:order_id], # Same as the order_id
+              'orderDate' => Time.now.getutc.strftime("%Y/%m/%d %H:%M:%S") #yyyy/mm/dd hh:mm:ss
+          }
+          add_invoice(post, money, options)
+          add_econ_payment_page_settings(post, options)
+          add_payment(post, payment)
+        else
+          # Membership
+          requires!(options, :order_id)
+          post = {
+              'paymtCode' => PAYMENT_CODE[:card_membership],
+              'fncCode' => action,
+              'cduserID' => payment, #single-byte alphanumeric within 36 characters
+              'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
+              'sessionID' => options[:order_id], # Same as the order_id
+              'cd3secFlg' => 0 # Do NOT activate 3d secure
+          }
+          add_invoice(post, money, options)
+        end
+        commit(post, options)
       end
 
       def add_invoice(post, money, options)
@@ -323,7 +318,8 @@ module ActiveMerchant #:nodoc:
         {
             ecn_token: response[:ecnToken],
             user_token: response[:cduserID],
-            order_id: options[:order_id]
+            order_id: options[:order_id],
+            card_aquirer_code: response[:shimukecd],
         }
       end
 

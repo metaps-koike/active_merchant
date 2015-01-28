@@ -4,7 +4,7 @@ require 'test_helper'
 # ECONTEXT supports both Credit Card based operations, and those where a token is provided
 # which represents Credit Card details previously stored with ECONTEXT
 #
-# This test class will test the options were CREDIT CARD details are supplied.
+# This test class will test the options where CREDIT CARD details are supplied.
 #
 class RemoteEcontextTest < Test::Unit::TestCase
   def setup
@@ -54,6 +54,14 @@ class RemoteEcontextTest < Test::Unit::TestCase
     }
   end
 
+  def test_failure_store
+    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    @options = {
+        customer: stamp,
+    }
+    assert_raise(ArgumentError){  @gateway.store('111111', @options) }
+  end
+
   def test_successful_purchase
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     @options = {
@@ -96,6 +104,7 @@ class RemoteEcontextTest < Test::Unit::TestCase
     }
     assert capture = @gateway.capture(@amount, auth.authorization, @options)
     assert_success capture
+    assert_equal '正常', capture.message
   end
 
   def test_failed_authorize_c1430
