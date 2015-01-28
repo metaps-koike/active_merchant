@@ -140,18 +140,24 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_equal '正常', capture.message
   end
 
-  # def test_failed_authorize_c1430
-  #   stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-  #   @options = {
-  #       order_id: stamp,
-  #       description: "#{stamp}Auth"
-  #   }
-  #   response = @gateway.authorize(@amount, @declined_card_c1430, @options)
-  #   assert_failure response
-  #   assert_equal 'C1430', response.params['infocode']
-  #   assert_equal '-7', response.params['status']
-  #   assert_equal 'カード与信失敗(02-00)', response.message
-  # end
+  def test_failed_authorize_invalid_member
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    @options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, @options)
+    assert_success response
+
+    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    @options = {
+        order_id: order,
+    }
+    response = @gateway.authorize(@amount, '111', @options)
+    assert_failure response
+    assert_equal 'C2101', response.params['infocode']
+    assert_equal '-2', response.params['status']
+    assert_equal '会員登録なし', response.message
+  end
 
   # def test_partial_capture
   #   auth = @gateway.authorize(@amount, @credit_card, @options)
