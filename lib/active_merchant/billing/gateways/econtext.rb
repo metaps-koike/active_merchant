@@ -129,21 +129,15 @@ module ActiveMerchant #:nodoc:
       end
 
       def capture(money, authorization, options={})
-        if true # TODO
-          requires!(options, :order_id)
-          # Non-membership
-          post = {
-              'paymtCode' => PAYMENT_CODE[:card_non_membership],
-              'fncCode' => FNC_CODES[:capture],
-              'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
-              'ordAmount' => localized_amount(money, 'JPY').to_i.to_s, # 1-999999 single-byte characters
-              'shipDate' => Time.now.getutc.strftime("%Y/%m/%d") # This is the capture date
-              # TODO - Need to fix this
-              #'orderDate' => Time.now.getutc.strftime("%Y/%m//%d %H:%M:%S") #yyyy/mm/dd hh:mm:ss
-          }
-        else
+        if options.has_key?(:customer) && !options[:customer].nil?
           # Membership
           requires!(options, :order_id)
+          post = build_capture_post(PAYMENT_CODE[:card_membership], FNC_CODES[:capture], money, options)
+          post['cduserID'] = options[:customer] #single-byte alphanumeric within 36 characters
+        else
+          requires!(options, :order_id)
+          # Non-membership
+          post = build_capture_post(PAYMENT_CODE[:card_non_membership], FNC_CODES[:capture], money, options)
         end
         commit(post, options)
       end
@@ -230,6 +224,16 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)
         end
         commit(post, options)
+      end
+
+      def build_capture_post(pCode, fCode, money, options={} )
+        {
+            'paymtCode' => pCode,
+            'fncCode' => fCode,
+            'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
+            'ordAmount' => localized_amount(money, 'JPY').to_i.to_s, # 1-999999 single-byte characters
+            'shipDate' => Time.now.getutc.strftime("%Y/%m/%d") # This is the capture date
+        }
       end
 
       def add_invoice(post, money, options)

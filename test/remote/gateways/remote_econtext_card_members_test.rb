@@ -131,12 +131,13 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_success auth
     assert_equal '正常', auth.message
 
-    # @options = {
-    #     order_id: order
-    # }
-    # assert capture = @gateway.capture(@amount, auth.authorization, @options)
-    # assert_success capture
-    # assert_equal '正常', capture.message
+    @options = {
+        order_id: order,
+        customer: cust
+    }
+    assert capture = @gateway.capture(@amount, auth.authorization, @options)
+    assert_success capture
+    assert_equal '正常', capture.message
   end
 
   # def test_failed_authorize_c1430
