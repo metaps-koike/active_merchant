@@ -187,6 +187,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)           # Item information
           add_customer_data(post, options)
         end
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -267,7 +268,7 @@ module ActiveMerchant #:nodoc:
           add_customer_data(post, options)
           add_billing_address_data(post, options)     # Billing Address Info
         end
-
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -332,7 +333,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)           # Item information - We allow partial amounts
           add_previous_request_data(post, authorization)
         end
-
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -400,6 +401,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, nil, options)             # Item information
           add_previous_request_data(post, authorization)
         end
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -462,7 +464,7 @@ module ActiveMerchant #:nodoc:
           add_customer_data(post, options)
           add_previous_request_data(post, authorization)
         end
-
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -517,9 +519,8 @@ module ActiveMerchant #:nodoc:
         else
           raise ArgumentError, 'payment must be a Credit card (ActiveMerchant::Billing::CreditCard)'
         end
-
+        add_d2_certification(post, options)
         commit(post)
-
       end
 
       def verify(credit_card, options={})
@@ -612,12 +613,21 @@ module ActiveMerchant #:nodoc:
         results
       end
 
+      def add_d2_certification(post, options)
+        # This is only used during certification purposes, and is ignored in integration environments
+        # However, it should not normally be specified.
+        if options.has_key? :d2
+          post['d2'] = options[:d2]
+        end
+      end
+
       def commit(parameters)
 
         url = (test? ? test_url : @options[:live_url])
 
-        # Add Merchant ID, then create the MD5 message and add to parameters
+        # Add Merchant ID,
         parameters['M'] = @options[:merchant_id]    # MerchantID
+        # then create the MD5 message and add to parameters
         parameters['K'] = create_md5_message(parameters, @options[:md5_cipher_key])
 
         response = parse(ssl_post(url, post_data(parameters)))
@@ -657,6 +667,9 @@ module ActiveMerchant #:nodoc:
         }
         unless response['g1'].blank?
           auth[:token] = response['g1']
+        end
+        unless response['d2'].blank?
+          auth[:d2] = response['d1']
         end
         auth
       end

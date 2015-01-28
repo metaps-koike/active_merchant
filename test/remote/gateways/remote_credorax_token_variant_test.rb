@@ -38,7 +38,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         billing_address: @billing_address,
         description: 'Store Item123', # Limited to 13 characters
-        invoice: 'merchant invoice'
+        invoice: 'merchant invoice',
+        d2: 'd2 test value'
     }
   end
 
@@ -72,6 +73,7 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
         ip: '1.1.1.1', # Fake IP for tests
         email: 'noone@example.com',
         description: 'Store Item123', # Limited to 13 characters
+        d2: 'd2 purchase value'
     }
 
     response = @gateway.purchase(@amount, store.authorization[:token], @options)
@@ -90,6 +92,7 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
         ip: '1.1.1.1', # Fake IP for tests
         email: 'noone@example.com',
         description: 'Store Item123', # Limited to 13 characters
+        d2: 'd2 purchase value'
     }
 
     response = @gateway.purchase(@amount, '111111111', @options)
@@ -105,7 +108,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
     assert_success auth
@@ -114,7 +118,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 capture value'
     }
     assert capture = @gateway.capture(nil, auth.authorization, @options)
     assert_success capture
@@ -136,13 +141,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 capture value'
     }
     assert capture = @gateway.capture(@amount-1000, auth.authorization, @options)
     assert_success capture
@@ -156,13 +163,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 capture value'
     }
 
     @bad_auth = {
@@ -184,19 +193,22 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 capture value'
     }
     capture = @gateway.capture(nil, auth.authorization, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 refund value'
     }
     assert refund = @gateway.refund(nil, capture.authorization, @options)
     assert_success refund
@@ -211,13 +223,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
-        description: 'Store Item123' # Limited to 13 characters
+        description: 'Store Item123', # Limited to 13 characters
+        d2: 'd2 purchase value'
     }
     purchase = @gateway.purchase(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 refund value'
     }
     assert refund = @gateway.refund(nil, purchase.authorization, @options)
     assert_success refund
@@ -231,19 +245,22 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 capture value'
     }
     capture = @gateway.capture(nil, auth.authorization, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 refund value'
     }
     assert refund = @gateway.refund(@amount-1000, capture.authorization, @options)
     assert_success refund
@@ -258,19 +275,22 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 capture value'
     }
     capture = @gateway.capture(nil, auth.authorization, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 refund value'
     }
     @bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
@@ -290,13 +310,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 void value'
     }
     assert void = @gateway.void(auth.authorization, @options)
     assert_success void
@@ -310,13 +332,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 auth value'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        d2: 'd2 void value'
     }
     @bad_auth = {
         authorization_code: auth.authorization[:authorization_code],

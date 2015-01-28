@@ -33,7 +33,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         billing_address: @billing_address,
-        description: 'Store Item123' # Limited to 13 characters
+        description: 'Store Item123', # Limited to 13 characters
+        d2: 'd2 test value'
     }
   end
 
@@ -69,7 +70,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1',  # Fake IP for tests
+        d2: 'd2 capture value'
     }
     assert capture = @gateway.capture(nil, auth.authorization, @options)
     assert_success capture
@@ -91,7 +93,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1',  # Fake IP for tests
+        d2: 'd2 capture value'
     }
     assert capture = @gateway.capture(@amount-1000, auth.authorization, @options)
     assert_success capture
@@ -106,7 +109,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1',  # Fake IP for tests
+        d2: 'd2 capture value'
     }
     @bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
@@ -127,7 +131,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     assert_success purchase
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1',  # Fake IP for tests
+        d2: 'd2 refund value'
     }
     assert refund = @gateway.refund(nil, purchase.authorization, @options)
     assert_success refund
@@ -142,7 +147,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1',  # Fake IP for tests
+        d2: 'd2 refund value'
     }
     @bad_auth = {
         authorization_code: purchase.authorization[:authorization_code],
@@ -164,7 +170,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1',  # Fake IP for tests
+        d2: 'd2 void value'
     }
     assert void = @gateway.void(auth.authorization, @options)
     assert_success void
@@ -179,7 +186,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1',  # Fake IP for tests
+        d2: 'd2 void value'
     }
     @bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
