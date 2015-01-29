@@ -21,7 +21,7 @@ module ActiveMerchant #:nodoc:
     # | authorize       |  p=c10/f=8       |  p=c20/f=8
     # | capture         |  p=c10/f=12      |  p=c20/f=12
     # | void            |  p=c10/f=20      |  p=c20/f=20
-    # | refund          |  p=c10/f=20      |  p=c20/f=20 (API mandates same paymtCode as used to create order)
+    # | refund          |  p=c10/f=20      |  p=c20/f=20 (API mandates same paymtCode as used to create order) (May need to call f=19 to do partial refund)
     # | store           |  N/A             |  p=c20/f=01 (Create), p=c20/f=02 (Update)
     # | unstore         |  N/A             |  p=c20/f=03 (Only deletes card, not the userid)
     #
@@ -151,10 +151,16 @@ module ActiveMerchant #:nodoc:
         if money.nil?
           void(authorization, options)
         else
-          # TODO
-          # We need to do a 'Change' call on the API
+          # money is the new transaction charge, NOT the amount to refund
+          requires!(authorization, :previous_paymt_code, :previous_order_id)
+          post = {
+              'paymtCode' => authorization[:previous_paymt_code],
+              'fncCode' => FNC_CODES[:change_charge_amount],
+              'orderID' => authorization[:previous_order_id], # 6-47 characters, unique per shop_id
+              'ordAmount' => localized_amount(money, 'JPY').to_i.to_s, # 1-999999 single-byte characters
+          }
+          commit(post, authorization[:previous_paymt_code], authorization[:previous_order_id])
         end
-
       end
 
       def void(authorization, options={})

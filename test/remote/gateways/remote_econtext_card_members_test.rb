@@ -146,14 +146,10 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_equal '会員登録なし', response.message
   end
 
-  # def test_partial_capture
-  #   auth = @gateway.authorize(@amount, @credit_card, @options)
-  #   assert_success auth
-  #
-  #   assert capture = @gateway.capture(@amount-1, auth.authorization)
-  #   assert_success capture
-  # end
-  #
+  def test_partial_capture
+    # NOT SUPPORTED
+  end
+
   def test_failed_capture
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
@@ -206,13 +202,25 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_success refund
   end
 
-  # def test_partial_refund
-  #   purchase = @gateway.purchase(@amount, @credit_card, @options)
-  #   assert_success purchase
-  #
-  #   assert refund = @gateway.refund(@amount-1, purchase.authorization)
-  #   assert_success refund
-  # end
+  def test_partial_refund
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, options)
+    assert_success response
+
+    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: order,
+    }
+    purchase = @gateway.purchase(@amount, cust, options)
+    assert_success purchase
+
+    # Send new amount, not the amount to refund (refund 6000 back to cardholder)
+    assert refund = @gateway.refund(4000, purchase.authorization)
+    assert_success refund
+  end
 
   def test_failed_refund
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
