@@ -89,6 +89,8 @@ module ActiveMerchant #:nodoc:
       self.money_format = :dollars
       self.supported_cardtypes = [:visa, :master, :american_express, :discover]
 
+      self.ssl_version = :SSLv3
+
       self.homepage_url = 'http://www.econtext.jp' # Japanese Language
       self.display_name = 'ECONTEXT'
 
@@ -277,17 +279,7 @@ module ActiveMerchant #:nodoc:
         headers = {
             'Content-Type' => 'application/x-www-form-urlencoded;charset=shift_jis'
         }
-
-        # response = parse(ssl_post(url, post_data(parameters), headers))
-
-        uri = URI.parse(url)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-
-        http.ssl_version = :SSLv3
-
-        response = parse(http.post(uri.request_uri, post_data(parameters), headers).body)
+        response = parse(ssl_post(url, post_data(parameters), headers))
 
         Response.new(
           success_from(response),
