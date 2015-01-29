@@ -18,7 +18,9 @@ module ActiveMerchant #:nodoc:
     # | authorize       |  [2] Authorisation       |  [12] Use Token - Auth
     # | capture         |  [3] Capture             |  [13] Use Token - Capture
     # | void            |  [4] Authorisation Void  |  [14] Token Auth Void
-    # | refund          |  [9] Capture Void        |  [15] Token Referral Credit
+    # | refund          |  [7] Sale Void           |
+    # |                 |  [9] Capture Void        |
+    # |                 |  [5] Referral Credit     |  [15] Token Referral Credit
     # | store           |  N/A                     |  [10] Create Token
     #
     #
@@ -29,6 +31,8 @@ module ActiveMerchant #:nodoc:
           authorisation:                '2',
           capture:                      '3',
           authorisation_void:           '4',
+          referral_credit:              '5',
+          sale_void:                    '7',
           capture_void:                 '9',
           create_token:                 '10',
           use_token_sale:               '11',
@@ -352,11 +356,20 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
       #
-      # ==== [9] Capture Void
+      # ==== [7] Sale Void, [9] Capture Void, [5] Referral Credit
       #
       # To use this operation, +authorization+ should NOT contain a populated +:token+ key/value pair.
       #
       # Cardholder billing address details are not needed.
+      #
+      # Also note, that due to Credorax's transaction states it is necessary to call the correct 'refund' operation
+      # This requires the use of a non-standard +option+, with a key of +:refund_type+
+      #
+      #  * <tt>:capture               </tt> If the transaction was created via [3] Capture AND was done so after the latest 'clearing' date (00:00UTC+02)
+      #  * <tt>:sale                  </tt> If the transaction was created via [1] Sale AND was done so after the latest 'clearing' date (00:00UTC+02)
+      #  * <tt>:post_clearing_credit  </tt> If the Sale/Capture time was before lastest 'clearing date' (so, has now been passed clearing)
+      #
+      # If this parameter is not specified, then it will default to :post_clearing_credit
       #
       # ==== [15] Token Referral Credit
       #
@@ -387,15 +400,24 @@ module ActiveMerchant #:nodoc:
           add_customer_data(post, options)
           add_previous_request_data(post, authorization)
         else
-
-          # Capture Void
+          # Basic Operations
           requires!(options, :ip, :order_id)
+          mapping = {
+              capture:              ACTIONS[:capture_void],
+              sale:                 ACTIONS[:sale_void],
+              post_clearing_credit: ACTIONS[:referral_credit]
+          }
+          if options.has_key?(:refund_type) && !options[:refund_type].blank?
+            opcode = mapping[options[:refund_type]]
+          else
+            opcode = ACTIONS[:referral_credit]
+          end
           post = {
-              'O' => ACTIONS[:capture_void],          # Operation Code
+              'O' => opcode,              # Operation Code
           }
           add_request_id(post, options)
           add_customer_data(post, options)
-          add_invoice(post, nil, options)             # Item information
+          add_invoice(post, nil, options) # Item information
           add_previous_request_data(post, authorization)
         end
         add_d2_certification(post, options)
