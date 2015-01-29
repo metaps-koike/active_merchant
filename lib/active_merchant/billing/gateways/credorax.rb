@@ -7,7 +7,7 @@ module ActiveMerchant #:nodoc:
     # This ActiveMerchant Gateway class supports two forms of interaction with Credorax.
     #
     # * Basic Operations - Credit Card must be supplied in Purchase and Authorisation calls, Previous referral code for other options
-    # * Card-on-file Operations - Credit Card details are stored with Credorax and referenced in future opertations with a Card Token
+    # * Card-on-file Operations - Credit Card details are stored with Credorax and referenced in future operations with a Card Token
     #
     # This gateway class uses the following ActiveMerchant method to Credorax operation mapping
     # The standard list of gateway functions that most concrete gateway subclasses implement is:
@@ -49,40 +49,37 @@ module ActiveMerchant #:nodoc:
 
       # Codes returned in the 'z2' response parameter
       RESULT_CODES = {
-        missing_valid_3d_secure_data:         '-13',
-        missing_card_secure_code:             '-12',
-        currency_not_supported_by_merchant:   '-11',
-        unclassified_error:                   '-10',
-        parameter_malformed:                  '-9',
-        package_signature_malformed:          '-8',
-        no_response_from_gateway:             '-7',
-        transaction_rejected:                 '-5',
-        account_status_not_updated:           '-3',
-        account_does_not_exist:               '-2',
-        account_already_exists:               '-1',
-        success:                              '0',
-        transaction_denied:                   '1',
-        transaction_denied_high_fraud_risk:   '2',
-        transaction_denied_high_avs_risk:     '03',
+        missing_valid_3d_secure_data:           '-13',
+        missing_card_secure_code:               '-12',
+        currency_not_supported_by_merchant:     '-11',
+        unclassified_error:                     '-10',
+        parameter_malformed:                    '-9',
+        package_signature_malformed:            '-8',
+        no_response_from_gateway:               '-7',
+        transaction_rejected:                   '-5',
+        account_status_not_updated:             '-3',
+        account_does_not_exist:                 '-2',
+        account_already_exists:                 '-1',
+        success:                                '0',
+        transaction_denied:                     '1',
+        transaction_denied_high_fraud_risk:     '2',
+        transaction_denied_high_avs_risk:       '03',
         transaction_denied_interchange_timeout: '04',
-        transaction_declined:                 '05',
-        redirect_url_issued:                  '7',
-        transaction_denied_luhn_check_fail:   '9',
-        transaction_partially_approved:       '10',
-        transaction_3d_enrolled:              '100'
+        transaction_declined:                   '05',
+        redirect_url_issued:                    '7',
+        transaction_denied_luhn_check_fail:     '9',
+        transaction_partially_approved:         '10',
+        transaction_3d_enrolled:                '100'
       }
 
       self.test_url = 'https://intconsole.credorax.com/intenv/service/gateway'
-      self.live_url = 'https://example.com/live' # TODO
 
-      self.supported_countries = ['US', 'JP', 'CA', 'GB'] # TODO
+      self.supported_countries = %w(US JP AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE GB) # US, JP, EU28
       self.default_currency = 'EUR'
-      self.supported_cardtypes = [:visa, :master, :jcb]
+      self.supported_cardtypes = [:visa, :master]
 
       self.homepage_url = 'http://epower.credorax.com'
       self.display_name = 'Credorax'
-
-      STANDARD_ERROR_CODE_MAPPING = {}
 
       # Initialize the Gateway
       #
@@ -597,7 +594,7 @@ module ActiveMerchant #:nodoc:
 
       def add_payment(post, payment)
         post['b1'] = payment.number                 # Card Number
-        post['b2'] = card_brand_code(payment.brand) # Card Type ID
+        post['b2'] = card_brand_code(payment.brand) unless payment.brand.blank? # Card Type ID
         post['b3'] = '%02d' % payment.month         # Card Expiration Month (MM) - ActiveMerchant Card stores as FixNum
         post['b4'] = payment.year.to_s[-2..-1]      # Card Expiration Year (YY) - ActiveMerchant Card stores as FixNum
         post['b5'] = payment.verification_value     # Card Secure Code, Visa
@@ -669,7 +666,7 @@ module ActiveMerchant #:nodoc:
           auth[:token] = response['g1']
         end
         unless response['d2'].blank?
-          auth[:d2] = response['d1']
+          auth[:d2] = response['d2']
         end
         auth
       end

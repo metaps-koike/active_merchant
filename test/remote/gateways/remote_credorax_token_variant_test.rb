@@ -14,13 +14,13 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @gateway = CredoraxGateway.new(fixtures(:credorax))
 
     @credit_card = credit_card('4037660000001115',
-                               {:brand => 'visa',
+                               {:brand => nil,
                                 :verification_value => '123',
                                 :month => 3,
                                 :year => (Time.now.year + 1),
                                })
     @declined_card = credit_card('4000300011112220',
-                                 {:brand => 'visa',
+                                 {:brand => nil,
                                   :verification_value => '123'
                                  })
 
@@ -68,15 +68,14 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         email: 'noone@example.com',
         description: 'Store Item123', # Limited to 13 characters
         d2: 'd2 purchase value'
     }
-
-    response = @gateway.purchase(@amount, store.authorization[:token], @options)
+    response = @gateway.purchase(@amount, store.authorization[:token], options)
     assert_success response
     assert_equal 'Transaction+has+been+executed+successfully.', response.message
   end
@@ -87,7 +86,7 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         email: 'noone@example.com',
@@ -95,7 +94,7 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
         d2: 'd2 purchase value'
     }
 
-    response = @gateway.purchase(@amount, '111111111', @options)
+    response = @gateway.purchase(@amount, '111111111', options)
     assert_failure response
 
   end
@@ -106,22 +105,22 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
     assert_success auth
     assert_equal 'Transaction+has+been+executed+successfully.', auth.message
     assert_not_nil auth.authorization[:token]
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 capture value'
     }
-    assert capture = @gateway.capture(nil, auth.authorization, @options)
+    assert capture = @gateway.capture(nil, auth.authorization, options)
     assert_success capture
     assert_equal 'Transaction+has+been+executed+successfully.', capture.message
   end
@@ -139,19 +138,19 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 capture value'
     }
-    assert capture = @gateway.capture(@amount-1000, auth.authorization, @options)
+    assert capture = @gateway.capture(@amount-1000, auth.authorization, options)
     assert_success capture
     assert_equal 'Transaction+has+been+executed+successfully.', capture.message
   end
@@ -161,27 +160,26 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 capture value'
     }
-
-    @bad_auth = {
+    bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
         response_id: auth.authorization[:response_id],
         transaction_id: auth.authorization[:transaction_id],
         token: auth.authorization[:token],
         previous_request_id: ''
     }
-    assert capture = @gateway.capture(nil, @bad_auth, @options)
+    assert capture = @gateway.capture(nil, bad_auth, options)
     assert_failure capture
 
   end
@@ -191,26 +189,26 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 capture value'
     }
-    capture = @gateway.capture(nil, auth.authorization, @options)
+    capture = @gateway.capture(nil, auth.authorization, options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 refund value'
     }
-    assert refund = @gateway.refund(nil, capture.authorization, @options)
+    assert refund = @gateway.refund(nil, capture.authorization, options)
     assert_success refund
     assert_equal 'Transaction+has+been+executed+successfully.', refund.message
   end
@@ -220,20 +218,20 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         description: 'Store Item123', # Limited to 13 characters
         d2: 'd2 purchase value'
     }
-    purchase = @gateway.purchase(@amount, store.authorization[:token], @options)
+    purchase = @gateway.purchase(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 refund value'
     }
-    assert refund = @gateway.refund(nil, purchase.authorization, @options)
+    assert refund = @gateway.refund(nil, purchase.authorization, options)
     assert_success refund
     assert_equal 'Transaction+has+been+executed+successfully.', refund.message
   end
@@ -243,26 +241,26 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 capture value'
     }
-    capture = @gateway.capture(nil, auth.authorization, @options)
+    capture = @gateway.capture(nil, auth.authorization, options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 refund value'
     }
-    assert refund = @gateway.refund(@amount-1000, capture.authorization, @options)
+    assert refund = @gateway.refund(@amount-1000, capture.authorization, options)
     assert_success refund
     assert_equal 'Transaction+has+been+executed+successfully.', refund.message
     assert_equal ((@amount-1000)/100).to_s, refund.params['a4'] # Sends amount back in 'Dollars/Euros', not 'Cents'
@@ -273,33 +271,33 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 capture value'
     }
-    capture = @gateway.capture(nil, auth.authorization, @options)
+    capture = @gateway.capture(nil, auth.authorization, options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 refund value'
     }
-    @bad_auth = {
+    bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
         response_id: auth.authorization[:response_id],
         transaction_id: auth.authorization[:transaction_id],
         token: auth.authorization[:token],
         previous_request_id: ''
     }
-    assert refund = @gateway.refund(nil, @bad_auth, @options)
+    assert refund = @gateway.refund(nil, bad_auth, options)
     assert_failure refund
   end
 
@@ -308,19 +306,19 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 void value'
     }
-    assert void = @gateway.void(auth.authorization, @options)
+    assert void = @gateway.void(auth.authorization, options)
     assert_success void
     assert_equal 'Transaction+has+been+executed+successfully.', void.message
   end
@@ -330,26 +328,26 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 auth value'
     }
-    auth = @gateway.authorize(@amount, store.authorization[:token], @options)
+    auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
-    @options = {
+    options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1', # Fake IP for tests
         d2: 'd2 void value'
     }
-    @bad_auth = {
+    bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
         response_id: auth.authorization[:response_id],
         transaction_id: auth.authorization[:transaction_id],
         token: auth.authorization[:token],
         previous_request_id: ''
     }
-    assert void = @gateway.void(@bad_auth, @options)
+    assert void = @gateway.void(bad_auth, options)
     assert_failure void
   end
 

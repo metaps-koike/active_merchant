@@ -31,13 +31,13 @@ class CredoraxTest < Test::Unit::TestCase
     )
 
     @credit_card = credit_card(CARD_NUMBER,
-                               {:brand => 'visa',
+                               {:brand => nil,
                                 :verification_value => '123',
                                 :month => 3,
                                 :year => (Time.now.year + 1),
                                })
     @declined_card = credit_card('4000300011112220',
-                                 {:brand => 'visa',
+                                 {:brand => nil,
                                   :verification_value => '123'
                                  })
     @amount = 10000 # This is 'cents', so 100 Euros
