@@ -39,27 +39,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
                                         :year => (Time.now.year + 1),
                                        })
 
-    # TODO
-    @billing_address = {
-        company:  'Widgets Inc',
-        city:     'Tokyo',
-        state:    '13', # TOKYO - http://www.unece.org/fileadmin/DAM/cefact/locode/Subdivision/jpSub.htm
-        zip:      '163-6038',
-        country:  'JP'
-    }
-
-    @options = {
-        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
-        description: 'dummy'
-    }
   end
 
   def test_successful_store
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         customer: stamp,
     }
-    response = @gateway.store(@credit_card, @options)
+    response = @gateway.store(@credit_card, options)
     assert_success response
     assert_equal '正常', response.message
     assert_equal '2S63046', response.authorization[:card_aquirer_code]
@@ -68,10 +55,10 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
 
   def test_failure_store
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         customer: stamp,
     }
-    response = @gateway.store(@declined_card_c1430, @options)
+    response = @gateway.store(@declined_card_c1430, options)
     assert_failure response
     assert_equal 'C1430', response.params['infocode']
     assert_equal '-7', response.params['status']
@@ -80,34 +67,34 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
 
   def test_successful_purchase
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         customer: cust,
     }
-    response = @gateway.store(@credit_card, @options)
+    response = @gateway.store(@credit_card, options)
     assert_success response
 
     order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         order_id: order,
     }
-    response = @gateway.purchase(@amount, cust, @options)
+    response = @gateway.purchase(@amount, cust, options)
     assert_success response
     assert_equal '正常', response.message
   end
 
   def test_failed_purchase_invalid_member
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         customer: cust,
     }
-    response = @gateway.store(@credit_card, @options)
+    response = @gateway.store(@credit_card, options)
     assert_success response
 
     order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         order_id: order,
     }
-    response = @gateway.purchase(@amount, '111', @options)
+    response = @gateway.purchase(@amount, '111', options)
     assert_failure response
     assert_equal 'C2101', response.params['infocode']
     assert_equal '-2', response.params['status']
@@ -117,35 +104,35 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
 
   def test_successful_authorize_and_capture
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         customer: cust,
     }
-    response = @gateway.store(@credit_card, @options)
+    response = @gateway.store(@credit_card, options)
     assert_success response
 
     order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         order_id: order,
     }
-    auth = @gateway.authorize(@amount, cust, @options)
+    auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
     assert_equal '正常', auth.message
 
-    @options = {
+    options = {
         order_id: order,
         customer: cust
     }
-    assert capture = @gateway.capture(@amount, auth.authorization, @options)
+    assert capture = @gateway.capture(@amount, auth.authorization, options)
     assert_success capture
     assert_equal '正常', capture.message
   end
 
   def test_failed_authorize_invalid_member
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    @options = {
+    options = {
         customer: cust,
     }
-    response = @gateway.store(@credit_card, @options)
+    response = @gateway.store(@credit_card, options)
     assert_success response
 
     order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
@@ -167,30 +154,57 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   #   assert_success capture
   # end
   #
-  # def test_failed_capture
-  #   stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-  #   @options = {
-  #       order_id: stamp,
-  #   }
-  #   response = @gateway.capture(@amount, nil, @options)
-  #   assert_failure response
-  # end
-  #
-  # def test_successful_refund
-  #   stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-  #   @options = {
-  #       order_id: stamp,
-  #       description: "#{stamp}Sale"
-  #   }
-  #   purchase = @gateway.purchase(@amount, @credit_card, @options)
-  #   assert_success purchase
-  #
-  #   @options = {
-  #       order_id: stamp
-  #   }
-  #   assert refund = @gateway.refund(nil, purchase.authorization, @options)
-  #   assert_success refund
-  # end
+  def test_failed_capture
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, options)
+    assert_success response
+
+    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: order,
+    }
+    auth = @gateway.authorize(@amount, cust, options)
+    assert_success auth
+
+    options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+        customer: '111'
+    }
+    bad_auth = {
+        ecn_token: auth.authorization[:ecn_token],
+        user_token: auth.authorization[:user_token],
+        previous_order_id: '111',
+        previous_paymt_code: auth.authorization[:previous_paymt_code],
+        card_aquirer_code: auth.authorization[:card_aquirer_code],
+    }
+    assert response = @gateway.capture(@amount, bad_auth, options)
+    assert_failure response
+    assert_equal 'C2106', response.params['infocode']
+    assert_equal '-2', response.params['status']
+    assert_equal '注文情報なし', response.message
+  end
+
+  def test_successful_refund
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, options)
+    assert_success response
+
+    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: order,
+    }
+    purchase = @gateway.purchase(@amount, cust, options)
+    assert_success purchase
+
+    assert refund = @gateway.refund(nil, purchase.authorization)
+    assert_success refund
+  end
 
   # def test_partial_refund
   #   purchase = @gateway.purchase(@amount, @credit_card, @options)
@@ -199,35 +213,82 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   #   assert refund = @gateway.refund(@amount-1, purchase.authorization)
   #   assert_success refund
   # end
-  #
-  # def test_failed_refund
-  #   response = @gateway.refund(nil, '')
-  #   assert_failure response
-  # end
-  #
-  # def test_successful_void
-  #   stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-  #   @options = {
-  #       order_id: stamp,
-  #       description: "#{stamp}Auth"
-  #   }
-  #   auth = @gateway.authorize(@amount, @credit_card, @options)
-  #   assert_success auth
-  #
-  #   @options = {
-  #       order_id: stamp
-  #   }
-  #   assert void = @gateway.void(auth.authorization, @options)
-  #   assert_success void
-  # end
-  #
-  # def test_failed_void
-  #   stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-  #   @options = {
-  #       order_id: stamp
-  #   }
-  #   response = @gateway.void('', @options)
-  #   assert_failure response
-  # end
+
+  def test_failed_refund
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, options)
+    assert_success response
+
+    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: order,
+    }
+    purchase = @gateway.purchase(@amount, cust, options)
+    assert_success purchase
+
+    bad_auth = {
+        ecn_token: purchase.authorization[:ecn_token],
+        user_token: purchase.authorization[:user_token],
+        previous_order_id: '111',
+        previous_paymt_code: purchase.authorization[:previous_paymt_code],
+        card_aquirer_code: purchase.authorization[:card_aquirer_code],
+    }
+    response = @gateway.refund(nil, bad_auth)
+    assert_failure response
+    assert_equal 'E1010', response.params['infocode']
+    assert_equal '-2', response.params['status']
+    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
+  end
+
+  def test_successful_void
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, options)
+    assert_success response
+
+    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: order,
+    }
+    auth = @gateway.authorize(@amount, cust, options)
+    assert_success auth
+
+    assert void = @gateway.void(auth.authorization)
+    assert_success void
+  end
+
+  def test_failed_void
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, options)
+    assert_success response
+
+    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: order,
+    }
+    auth = @gateway.authorize(@amount, cust, options)
+    assert_success auth
+
+    bad_auth = {
+        ecn_token: auth.authorization[:ecn_token],
+        user_token: auth.authorization[:user_token],
+        previous_order_id: '111',
+        previous_paymt_code: auth.authorization[:previous_paymt_code],
+        card_aquirer_code: auth.authorization[:card_aquirer_code],
+    }
+    response = @gateway.void(bad_auth)
+    assert_failure response
+    assert_equal 'E1010', response.params['infocode']
+    assert_equal '-2', response.params['status']
+    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
+  end
 
 end

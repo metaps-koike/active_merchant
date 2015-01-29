@@ -21,7 +21,7 @@ module ActiveMerchant #:nodoc:
     # | authorize       |  p=c10/f=8       |  p=c20/f=8
     # | capture         |  p=c10/f=12      |  p=c20/f=12
     # | void            |  p=c10/f=20      |  p=c20/f=20
-    # | refund          |  p=c10/f=20      |  p=c20/f=20
+    # | refund          |  p=c10/f=20      |  p=c20/f=20 (API mandates same paymtCode as used to create order)
     # | store           |  N/A             |  p=c20/f=01 (Create), p=c20/f=02 (Update)
     # | unstore         |  N/A             |  p=c20/f=03 (Only deletes card, not the userid)
     #
@@ -129,17 +129,20 @@ module ActiveMerchant #:nodoc:
       end
 
       def capture(money, authorization, options={})
+        pCode = ''
         if options.has_key?(:customer) && !options[:customer].nil?
           # Membership
           requires!(options, :order_id)
-          post = build_capture_post(PAYMENT_CODE[:card_membership], FNC_CODES[:capture], money, options)
+          pCode = PAYMENT_CODE[:card_membership]
+          post = build_capture_post(pCode, FNC_CODES[:capture], money, options)
           post['cduserID'] = options[:customer] #single-byte alphanumeric within 36 characters
         else
           requires!(options, :order_id)
           # Non-membership
-          post = build_capture_post(PAYMENT_CODE[:card_non_membership], FNC_CODES[:capture], money, options)
+          pCode = PAYMENT_CODE[:card_non_membership]
+          post = build_capture_post(pCode, FNC_CODES[:capture], money, options)
         end
-        commit(post, options)
+        commit(post, pCode, options[:order_id])
       end
 
       def refund(money, authorization, options={})
@@ -153,21 +156,13 @@ module ActiveMerchant #:nodoc:
       end
 
       def void(authorization, options={})
-
-        if true # TODO
-          requires!(options, :order_id)
-          # Non-membership
-          post = {
-              'paymtCode' => PAYMENT_CODE[:card_non_membership],
-              'fncCode' => FNC_CODES[:cancel_order],
-              'orderID' => options[:order_id] # 6-47 characters, unique per shop_id
-          }
-        else
-          # Membership
-          requires!(options, :order_id)
-        end
-        commit(post, options)
-
+        requires!(authorization, :previous_paymt_code, :previous_order_id)
+        post = {
+          'paymtCode' => authorization[:previous_paymt_code],
+          'fncCode' => FNC_CODES[:cancel_order],
+          'orderID' => authorization[:previous_order_id] # 6-47 characters, unique per shop_id
+        }
+        commit(post, authorization[:previous_paymt_code], authorization[:previous_order_id])
       end
 
       def store(payment, options = {})
@@ -187,7 +182,7 @@ module ActiveMerchant #:nodoc:
         else
           raise ArgumentError, 'payment must be a Credit card (ActiveMerchant::Billing::CreditCard)'
         end
-        commit(post, options)
+        commit(post, PAYMENT_CODE[:card_membership], nil)
       end
 
       def verify(credit_card, options={})
@@ -197,14 +192,12 @@ module ActiveMerchant #:nodoc:
       private
 
       def purchase_or_auth(action, money, payment, options={})
+        pCode = ''
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
           requires!(options, :order_id, :description)
+          pCode = PAYMENT_CODE[:card_non_membership]
           # Non-membership
           post = {
-              'paymtCode' => PAYMENT_CODE[:card_non_membership],
-              'fncCode' => action,
-              'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
-              'sessionID' => options[:order_id], # Same as the order_id
               'orderDate' => Time.now.getutc.strftime("%Y/%m/%d %H:%M:%S") #yyyy/mm/dd hh:mm:ss
           }
           add_invoice(post, money, options)
@@ -213,17 +206,18 @@ module ActiveMerchant #:nodoc:
         else
           # Membership
           requires!(options, :order_id)
+          pCode = PAYMENT_CODE[:card_membership]
           post = {
-              'paymtCode' => PAYMENT_CODE[:card_membership],
-              'fncCode' => action,
               'cduserID' => payment, #single-byte alphanumeric within 36 characters
-              'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
-              'sessionID' => options[:order_id], # Same as the order_id
               'cd3secFlg' => 0 # Do NOT activate 3d secure
           }
           add_invoice(post, money, options)
         end
-        commit(post, options)
+        post['paymtCode'] = pCode
+        post['fncCode'] = action
+        post['orderID'] = options[:order_id] # 6-47 characters, unique per shop_id
+        post['sessionID'] = options[:order_id]
+        commit(post, pCode, options[:order_id])
       end
 
       def build_capture_post(pCode, fCode, money, options={} )
@@ -277,7 +271,7 @@ module ActiveMerchant #:nodoc:
         response
       end
 
-      def commit(parameters, options)
+      def commit(parameters, paymt_code, order_id)
         url = (test? ? test_url : @options[:live_url])
 
         headers = {
@@ -293,15 +287,13 @@ module ActiveMerchant #:nodoc:
 
         http.ssl_version = :SSLv3
 
-        puts post_data(parameters)
-
         response = parse(http.post(uri.request_uri, post_data(parameters), headers).body)
 
         Response.new(
           success_from(response),
           message_from(response),
           response,
-          authorization: authorization_from(response, options),
+          authorization: authorization_from(response, paymt_code, order_id),
           test: test?
         )
       end
@@ -318,12 +310,13 @@ module ActiveMerchant #:nodoc:
         response[:info].encode('UTF-8') unless response[:status].nil?
       end
 
-      def authorization_from(response, options)
+      def authorization_from(response, paymt_code, order_id)
         {
             ecn_token: response[:ecnToken],
             user_token: response[:cduserID],
-            order_id: options[:order_id],
             card_aquirer_code: response[:shimukecd],
+            previous_order_id: order_id,
+            previous_paymt_code: paymt_code
         }
       end
 
