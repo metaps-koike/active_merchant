@@ -119,7 +119,7 @@ class RemoteEcontextTest < Test::Unit::TestCase
     assert_failure response
   end
 
-  def test_successful_refund
+  def test_successful_refund_from_a_purchase
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: stamp,
@@ -131,6 +131,26 @@ class RemoteEcontextTest < Test::Unit::TestCase
     assert refund = @gateway.refund(nil, purchase.authorization)
     assert_success refund
   end
+
+  def test_successful_refund_from_a_auth_capture
+    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: stamp,
+        description: "#{stamp}Auth"
+    }
+    auth = @gateway.authorize(@amount, @credit_card, options)
+    assert_success auth
+
+    options = {
+        order_id: stamp
+    }
+    assert capture = @gateway.capture(@amount, auth.authorization, options)
+    assert_success capture
+
+    assert refund = @gateway.refund(nil, capture.authorization)
+    assert_success refund
+  end
+
 
   def test_partial_refund
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
@@ -197,4 +217,5 @@ class RemoteEcontextTest < Test::Unit::TestCase
     response = gateway.purchase(@amount, @credit_card, @options)
     assert_failure response
   end
+  
 end
