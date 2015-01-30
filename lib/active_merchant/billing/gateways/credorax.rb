@@ -132,11 +132,12 @@ module ActiveMerchant #:nodoc:
       # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
       # Specify the:
       #  * number
-      #  * brand
       #  * month
       #  * year
       #  * verification_value
       #  * name
+      #
+      # 'brand' will be ignored if it is specified.
       #
       # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
       #  * <tt>:city</tt> - The Cardholder's billing address city.
@@ -212,11 +213,13 @@ module ActiveMerchant #:nodoc:
       # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
       # Specify the:
       #  * number
-      #  * brand
       #  * month
       #  * year
       #  * verification_value
       #  * name
+      #
+      # 'brand' will be ignored if it is specified.
+      #
       #
       # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
       #  * <tt>:city</tt> - The Cardholder's billing address city.
@@ -501,11 +504,12 @@ module ActiveMerchant #:nodoc:
       #  +payment+ is a ActiveMerchant::Billing::CreditCard instance.
       # Specify the:
       #  * number
-      #  * brand
       #  * month
       #  * year
       #  * verification_value
       #  * name
+      #
+      # 'brand' will be ignored if it is specified.
       #
       # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
       #  * <tt>:city</tt> - The Cardholder's billing address city.
@@ -616,7 +620,6 @@ module ActiveMerchant #:nodoc:
 
       def add_payment(post, payment)
         post['b1'] = payment.number                 # Card Number
-        post['b2'] = card_brand_code(payment.brand) unless payment.brand.blank? # Card Type ID
         post['b3'] = '%02d' % payment.month         # Card Expiration Month (MM) - ActiveMerchant Card stores as FixNum
         post['b4'] = payment.year.to_s[-2..-1]      # Card Expiration Year (YY) - ActiveMerchant Card stores as FixNum
         post['b5'] = payment.verification_value     # Card Secure Code, Visa
@@ -730,23 +733,6 @@ module ActiveMerchant #:nodoc:
         md5.hexdigest
       end
 
-      # Convert ActiveMerchant::Billing::CreditCard.brand string into numeric code
-      # for Credorax
-      def card_brand_code(brand)
-
-        map = {
-          'visa'      => '1',
-          'master'    => '2',
-          'maestro'   => '9'
-        } # All others map 0
-
-        if map.has_key?(brand)
-          return map[brand]
-        else
-          return '0' # Unknown
-        end
-
-      end
     end
   end
 end
