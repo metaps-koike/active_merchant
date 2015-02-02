@@ -18,9 +18,9 @@ module ActiveMerchant #:nodoc:
     # | authorize       |  [2] Authorisation       |  [12] Use Token - Auth
     # | capture         |  [3] Capture             |  [13] Use Token - Capture
     # | void            |  [4] Authorisation Void  |  [14] Token Auth Void
-    # | refund          |  [7] Sale Void           |
-    # |                 |  [9] Capture Void        |
-    # |                 |  [5] Referral Credit     |  [15] Token Referral Credit
+    # | refund          |  [7] Sale Void           |  [7] Sale Void
+    # |                 |  [9] Capture Void        |  [9] Capture Void
+    # |                 |  [5] Referral Credit     |  [5] Referral Credit
     # | store           |  N/A                     |  [10] Create Token
     #
     #
@@ -343,16 +343,12 @@ module ActiveMerchant #:nodoc:
 
       # Perform a refund of capture or sale.
       #
-      # This method will either send a "[9] Capture Void" or "[15] Token Referral Credit" operation.
+      # This method will either send a [7] Sale Void, [9] Capture Void, or [5] Referral Credit operation.
       # The method requires that valid data is defined in the +options+ hash.
       #
       # === money
       #
-      # Only used by "[15] Token Referral Credit", ignored by "[9] Capture Void"
-      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
-      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
-      # The amount specified allows a partial refund.
-      # In the case of "[9] Capture Void", it is ignored because only a full refund is supported.
+      # Partial Refund not supported
       #
       # === Options
       #
@@ -360,8 +356,6 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
       #
       # ==== [7] Sale Void, [9] Capture Void, [5] Referral Credit
-      #
-      # To use this operation, +authorization+ should NOT contain a populated +:token+ key/value pair.
       #
       # Cardholder billing address details are not needed.
       #
@@ -374,55 +368,32 @@ module ActiveMerchant #:nodoc:
       #
       # If this parameter is not specified, then it will default to :post_clearing_credit
       #
-      # ==== [15] Token Referral Credit
-      #
-      # To use this operation, +authorization+ should contain a populated +:token+ key/value pair.
-      #
-      # Cardholder billing address details are not needed.
-      #
       # === Response
       #
       # response[:authorization] contains a hash with the following key/value pairs
-      #  * <tt>:token</tt> - This is not returned for [9] Capture Void
       #  * <tt>:authorization_code</tt> - This will be set to 0
       #  * <tt>:response_id</tt>
       #  * <tt>:transaction_id</tt> - This will be set to nil
       #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
       #
       def refund(money, authorization, options={})
-
-        if authorization.has_key?(:token) && !authorization[:token].blank?
-          # Token Referral Credit
-          requires!(options, :ip, :order_id)
-          post = {
-              'O' => ACTIONS[:token_referral_credit], # Operation Code
-          }
-          add_request_id(post, options)
-          add_token(post, authorization[:token])
-          add_invoice(post, money, options)           # Item information
-          add_customer_data(post, options)
-          add_previous_request_data(post, authorization)
+        requires!(options, :ip, :order_id, :refund_type)
+        mapping = {
+            capture:              ACTIONS[:capture_void],
+            sale:                 ACTIONS[:sale_void],
+            post_clearing_credit: ACTIONS[:referral_credit]
+        }
+        if options.has_key?(:refund_type) && !options[:refund_type].blank?
+          opcode = mapping[options[:refund_type]]
         else
-          # Basic Operations
-          requires!(options, :ip, :order_id)
-          mapping = {
-              capture:              ACTIONS[:capture_void],
-              sale:                 ACTIONS[:sale_void],
-              post_clearing_credit: ACTIONS[:referral_credit]
-          }
-          if options.has_key?(:refund_type) && !options[:refund_type].blank?
-            opcode = mapping[options[:refund_type]]
-          else
-            opcode = ACTIONS[:referral_credit]
-          end
-          post = {
-              'O' => opcode,              # Operation Code
-          }
-          add_request_id(post, options)
-          add_customer_data(post, options)
-          add_invoice(post, nil, options) # Item information
-          add_previous_request_data(post, authorization)
+          opcode = ACTIONS[:referral_credit]
         end
+        post = {
+            'O' => opcode,              # Operation Code
+        }
+        add_request_id(post, options)
+        add_customer_data(post, options)
+        add_previous_request_data(post, authorization)
         add_d2_certification(post, options)
         commit(post)
       end
@@ -580,7 +551,6 @@ module ActiveMerchant #:nodoc:
       def add_billing_address_data(data, options)
         billing_address = options[:billing_address] || options[:address]
         if billing_address
-          # TODO - Correct Mapping for c4 - Billing Street Number and c5 - Billing Street Name
           if billing_address.has_key? :city
             data['c7'] = billing_address[:city] # Billing City Name
           end

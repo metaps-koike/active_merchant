@@ -190,7 +190,8 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1',  # Fake IP for tests
-        d2: 'd2 refund value'
+        d2: 'd2 refund value',
+        refund_type: :sale
     }
     bad_auth = {
         authorization_code: purchase.authorization[:authorization_code],
@@ -202,7 +203,6 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     response = @gateway.refund(nil, bad_auth, options)
     assert_failure response
   end
-
 
   def test_successful_void
     @options[:ip] = '1.1.1.1' # Fake IP for tests

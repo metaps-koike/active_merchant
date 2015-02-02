@@ -242,7 +242,8 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        refund_type: :sale
     }
     assert refund = @gateway.refund(nil, purchase.authorization, @options)
     assert_success refund
@@ -264,7 +265,8 @@ class CredoraxTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
+        ip: '1.1.1.1', # Fake IP for tests
+        refund_type: :sale
     }
     @bad_auth = {
         authorization_code: purchase.authorization[:authorization_code],
