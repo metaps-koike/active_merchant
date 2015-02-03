@@ -168,6 +168,7 @@ module ActiveMerchant #:nodoc:
       def purchase(money, payment, options={})
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
+
           requires!(options, :email, :ip, :order_id, :description)
           # Sale
           post = {
@@ -506,7 +507,7 @@ module ActiveMerchant #:nodoc:
               'O' => ACTIONS[:create_token],       # Operation Code
           }
           add_request_id(post, options)
-          add_invoice(post, 100, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response)
+          add_invoice(post, 100000, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response)
           add_payment(post, payment)
           add_customer_data(post, options)
           add_billing_address_data(post, options)
@@ -575,6 +576,11 @@ module ActiveMerchant #:nodoc:
           post['a4'] = amount(money).to_i.to_s        # Billing Amount - Whole numbers (cents) as string
         end
 
+        if options.has_key?(:currency) && !options[:currency].nil?
+          # Override the default currency
+          post['a5'] = options[:currency]
+        end
+
         if options.has_key? :description
           if options[:description].length > 13
             raise ArgumentError, 'transaction description can has maximum length of 13 characters'
@@ -589,6 +595,14 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_payment(post, payment)
+
+        unless payment.brand.blank?
+          # Specifying the brand is not recommended, but must support it
+          # Need to by-pass the getter method on ActiveMerchant::Billing::CreditCard which does a
+          # BIN to Brand lookup
+          post['b2'] = card_brand(payment.instance_variable_get('@brand'))
+        end
+
         post['b1'] = payment.number                 # Card Number
         post['b3'] = '%02d' % payment.month         # Card Expiration Month (MM) - ActiveMerchant Card stores as FixNum
         post['b4'] = payment.year.to_s[-2..-1]      # Card Expiration Year (YY) - ActiveMerchant Card stores as FixNum
@@ -655,7 +669,8 @@ module ActiveMerchant #:nodoc:
           authorization_code: response['z4'],
           response_id: response['z1'],
           transaction_id: response['z13'],
-          previous_request_id: response['a1']
+          previous_request_id: response['a1'],
+          response_reason_code: response['z6']
         }
         unless response['g1'].blank?
           auth[:token] = response['g1']
@@ -701,6 +716,19 @@ module ActiveMerchant #:nodoc:
         md5 = Digest::MD5.new
         md5.update(line_up_value)
         md5.hexdigest
+      end
+
+      def card_brand(brand)
+        if brand.is_a? Symbol
+          branding_mapping = {
+              visa:     1,
+              master:   2,
+              maestro:  9
+          }
+          return branding_mapping.has_key?(brand) ? branding_mapping[brand] : 0
+        end
+        # use value supplied
+        return brand.to_s
       end
 
     end
