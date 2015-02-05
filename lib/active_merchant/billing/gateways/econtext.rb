@@ -122,10 +122,90 @@ module ActiveMerchant #:nodoc:
         super
       end
 
+      # Perform a purchase.
+      #
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
+      #
+      # === Options
+      #
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single shop_id
+      #
+      # ==== Basic
+      #
+      # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
+      # Specify the:
+      #  * number
+      #  * month
+      #  * year
+      #  * verification_value
+      #  * name
+      #
+      # Also, additional parameters need to be defined in options
+      #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement.
+      #
+      # ==== Card Membership
+      #
+      # To use this operation, +payment+ should be a +String+ representation of a ECONTEXT 'token' that is defined in the 'cduserID' parameter.
+      # This token will have been created using the +store+ method.
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:ecn_token</tt>
+      #  * <tt>:user_token</tt>
+      #  * <tt>:card_aquirer_code</tt>
+      #  * <tt>:previous_order_id</tt> - The order_id used in this operation
+      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinquishes between basic 'C10' and card membership 'C20'
+      #
       def purchase(money, payment, options={})
         purchase_or_auth(FNC_CODES[:cash_card_reg_auth_sale], money, payment, options)
       end
 
+      # Perform an authorize.
+      #
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
+      #
+      # === Options
+      #
+      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single shop_id
+      #
+      # ==== Basic
+      #
+      # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
+      # Specify the:
+      #  * number
+      #  * month
+      #  * year
+      #  * verification_value
+      #  * name
+      #
+      # Also, additional parameters need to be defined in options
+      #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement.
+      #
+      # ==== Card Membership
+      #
+      # To use this operation, +payment+ should be a +String+ representation of a ECONTEXT 'token' that is defined in the 'cduserID' parameter.
+      # This token will have been created using the +store+ method.
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:ecn_token</tt>
+      #  * <tt>:user_token</tt>
+      #  * <tt>:card_aquirer_code</tt>
+      #  * <tt>:previous_order_id</tt> - The order_id used in this operation
+      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinquishes between basic 'C10' and card membership 'C20'
+      #
       def authorize(money, payment, options={})
         purchase_or_auth(FNC_CODES[:card_register_and_auth], money, payment, options)
       end
