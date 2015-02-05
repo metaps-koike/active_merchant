@@ -179,23 +179,81 @@ class EcontextTest < Test::Unit::TestCase
     assert_success refund
   end
 
-  # def test_failed_refund
-  # end
-  #
-  # def test_successful_void
-  # end
-  #
-  # def test_failed_void
-  # end
-  #
-  # def test_successful_verify
-  # end
-  #
-  # def test_successful_verify_with_failed_void
-  # end
-  #
-  # def test_failed_verify
-  # end
+
+  def test_partial_refund
+    @gateway.expects(:ssl_post).times(2).returns(
+        successful_purchase_response
+    ).then.returns(
+        successful_refund_response
+    )
+
+    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: stamp,
+        description: "#{stamp}Sale"
+    }
+    purchase = @gateway.purchase(@amount, @credit_card, options)
+    assert_success purchase
+
+    # Send new amount, not the amount to refund (refund 6000 back to cardholder)
+    assert refund = @gateway.refund(4000, purchase.authorization)
+    assert_success refund
+  end
+
+  def test_failed_refund
+    @gateway.expects(:ssl_post).returns(failed_refund_response)
+
+    bad_auth = {
+        ecn_token: '',
+        user_token: '',
+        previous_order_id: '111',
+        previous_paymt_code: 'C10',
+        card_aquirer_code: '',
+    }
+    response = @gateway.refund(nil, bad_auth)
+    assert_failure response
+    assert_equal 'E1010', response.params['infocode']
+    assert_equal '-2', response.params['status']
+    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
+  end
+
+  def test_successful_void
+    @gateway.expects(:ssl_post).times(2).returns(
+        successful_authorize_response
+    ).then.returns(
+        successful_void_response
+    )
+
+    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: stamp,
+        description: "#{stamp}Auth"
+    }
+    auth = @gateway.authorize(@amount, @credit_card, options)
+    assert_success auth
+
+    assert void = @gateway.void(auth.authorization)
+    assert_success void
+    assert_equal '00異常なし', void.message
+  end
+
+  def test_failed_void
+    @gateway.expects(:ssl_post).returns(failed_refund_response)
+
+    bad_auth = {
+        ecn_token: '',
+        user_token: '',
+        previous_order_id: '111',
+        previous_paymt_code: 'C10',
+        card_aquirer_code: '',
+    }
+    response = @gateway.void(bad_auth)
+    assert_failure response
+  end
+
+  def test_successful_verify
+    assert_raise(NotImplementedError){ @gateway.verify(@credit_card, @options) }
+  end
 
   private
 
@@ -232,11 +290,14 @@ class EcontextTest < Test::Unit::TestCase
   end
 
   def failed_refund_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>パラメータチェックエラー「orderID:111」</info><infoCode>E1010</infoCode></result>".encode('Shift_JIS')
   end
 
   def successful_void_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>00異常なし</info><infoCode>00000</infoCode><econCardno4></econCardno4><cardExpdate></cardExpdate><cduserID></cduserID><shimukeCD></shimukeCD><shoninCD></shoninCD><ecnToken></ecnToken><cardentryURL></cardentryURL><paymentURL></paymentURL><directpayURL></directpayURL></result>".encode('Shift_JIS')
   end
 
   def failed_void_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>パラメータチェックエラー「orderID:111」</info><infoCode>E1010</infoCode></result>".encode('Shift_JIS')
   end
 end
