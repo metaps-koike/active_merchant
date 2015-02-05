@@ -6,18 +6,22 @@ require 'test_helper'
 #
 # This test class will test the options where tokens details are created and then supplied.
 #
-class RemoteEcontextCardMembersTest < Test::Unit::TestCase
+class EcontextCardMembersTest < Test::Unit::TestCase
+
+  SHOP_ID       = 'A00000'
+  CHECK_CODE    = 'A00001112233'
+  LIVE_URL      = 'https://example.com/rcv_odr.aspx'
+
+
   def setup
-    @gateway = EcontextGateway.new(fixtures(:econtext))
+
+    @gateway = EcontextGateway.new(
+        shop_id: SHOP_ID,
+        chk_code: CHECK_CODE,
+        live_url: LIVE_URL
+    )
 
     @amount = 10000
-    # TODO Why does this fail, this should be a CVV2 checked card
-    # @credit_card = credit_card('4123450131003312',
-    #                            {:brand => 'visa',
-    #                             :verification_value => '815',
-    #                             :month => 3,
-    #                             :year => (Time.now.year + 1),
-    #                            })
 
     @credit_card = credit_card('4980111111111111',
                                {:brand => 'visa',
@@ -39,9 +43,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
                                         :year => (Time.now.year + 1),
                                        })
 
+    @options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+        description: 'dummy'
+    }
   end
 
   def test_successful_store
+    @gateway.expects(:ssl_post).returns(successful_store_response)
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: stamp,
@@ -54,6 +63,7 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_failure_store
+    @gateway.expects(:ssl_post).returns(failed_store_response)
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: stamp,
@@ -66,6 +76,12 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase
+    @gateway.expects(:ssl_post).times(2).returns(
+        successful_store_response
+    ).then.returns(
+        successful_purchase_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -83,6 +99,12 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_failed_purchase_invalid_member
+    @gateway.expects(:ssl_post).times(2).returns(
+        successful_store_response
+    ).then.returns(
+        failed_c2101_purchase_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -102,6 +124,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_successful_authorize_and_capture
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_store_response
+    ).then.returns(
+        successful_authorize_response
+    ).then.returns(
+        successful_capture_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -127,6 +157,12 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_failed_authorize_invalid_member
+    @gateway.expects(:ssl_post).times(2).returns(
+        successful_store_response
+    ).then.returns(
+        failed_c2101_authorize_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -150,6 +186,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_failed_capture
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_store_response
+    ).then.returns(
+        successful_authorize_response
+    ).then.returns(
+        failed_capture_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -183,6 +227,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_successful_refund
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_store_response
+    ).then.returns(
+        successful_purchase_response
+    ).then.returns(
+        successful_refund_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -202,6 +254,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_partial_refund
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_store_response
+    ).then.returns(
+        successful_purchase_response
+    ).then.returns(
+        successful_refund_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -222,6 +282,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_failed_refund
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_store_response
+    ).then.returns(
+        successful_purchase_response
+    ).then.returns(
+        failed_refund_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -251,6 +319,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_successful_void
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_store_response
+    ).then.returns(
+        successful_authorize_response
+    ).then.returns(
+        successful_void_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -270,6 +346,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
   end
 
   def test_failed_void
+    @gateway.expects(:ssl_post).times(3).returns(
+        successful_store_response
+    ).then.returns(
+        successful_authorize_response
+    ).then.returns(
+        failed_void_response
+    )
+
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         customer: cust,
@@ -298,4 +382,54 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_equal 'パラメータチェックエラー「orderID:111」', response.message
   end
 
+  private
+
+  def successful_store_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>正常</info><infoCode>00000</infoCode><econNo>9999999</econNo><econCardno4></econCardno4><cardExpdate></cardExpdate><cduserID></cduserID><shimukeCD>2S63046</shimukeCD><shoninCD></shoninCD><ecnToken></ecnToken><cardentryURL></cardentryURL><paymentURL></paymentURL><directpayURL></directpayURL></result>".encode('Shift_JIS')
+  end
+
+  def failed_store_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-7</status><info>カード与信失敗(02-00)</info><infoCode>C1430</infoCode></result>".encode('Shift_JIS')
+  end
+
+  def successful_purchase_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>正常</info><infoCode>00000</infoCode><econNo>9999999</econNo><econCardno4>1111</econCardno4><cardExpdate></cardExpdate><cduserID></cduserID><shimukeCD>2S63046</shimukeCD><shoninCD>111111</shoninCD><ecnToken></ecnToken><cardentryURL></cardentryURL><paymentURL></paymentURL><directpayURL></directpayURL></result>".encode('Shift_JIS')
+  end
+
+  def failed_c2101_purchase_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>会員登録なし</info><infoCode>C2101</infoCode></result>".encode('Shift_JIS')
+  end
+
+
+  def successful_authorize_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>正常</info><infoCode>00000</infoCode><econNo>9999999</econNo><econCardno4>1111</econCardno4><cardExpdate></cardExpdate><cduserID></cduserID><shimukeCD>2S63046</shimukeCD><shoninCD>111111</shoninCD><ecnToken></ecnToken><cardentryURL></cardentryURL><paymentURL></paymentURL><directpayURL></directpayURL></result>".encode('Shift_JIS')
+  end
+
+  def failed_c2101_authorize_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>会員登録なし</info><infoCode>C2101</infoCode></result>".encode('Shift_JIS')
+  end
+
+  def successful_capture_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>正常</info><infoCode>00000</infoCode><econNo>9999999</econNo><econCardno4></econCardno4><cardExpdate></cardExpdate><cduserID></cduserID><shimukeCD></shimukeCD><shoninCD></shoninCD><ecnToken></ecnToken><cardentryURL></cardentryURL><paymentURL></paymentURL><directpayURL></directpayURL></result>".encode('Shift_JIS')
+  end
+
+  def failed_capture_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>注文情報なし</info><infoCode>C2106</infoCode></result>".encode('Shift_JIS')
+  end
+
+  def successful_refund_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>正常</info><infoCode>00000</infoCode><econNo>9999999</econNo><econCardno4></econCardno4><cardExpdate></cardExpdate><cduserID></cduserID><shimukeCD></shimukeCD><shoninCD></shoninCD><ecnToken></ecnToken><cardentryURL></cardentryURL><paymentURL></paymentURL><directpayURL></directpayURL></result>".encode('Shift_JIS')
+  end
+
+  def failed_refund_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>パラメータチェックエラー「orderID:111」</info><infoCode>E1010</infoCode></result>".encode('Shift_JIS')
+  end
+
+  def successful_void_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>正常</info><infoCode>00000</infoCode><econNo>9999999</econNo><econCardno4></econCardno4><cardExpdate></cardExpdate><cduserID></cduserID><shimukeCD></shimukeCD><shoninCD></shoninCD><ecnToken></ecnToken><cardentryURL></cardentryURL><paymentURL></paymentURL><directpayURL></directpayURL></result>".encode('Shift_JIS')
+  end
+
+  def failed_void_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>パラメータチェックエラー「orderID:111」</info><infoCode>E1010</infoCode></result>".encode('Shift_JIS')
+  end
 end

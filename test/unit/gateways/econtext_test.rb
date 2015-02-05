@@ -1,5 +1,11 @@
 require 'test_helper'
 
+# == Description
+# ECONTEXT supports both Credit Card based operations, and those where a token is provided
+# which represents Credit Card details previously stored with ECONTEXT
+#
+# This test class will test the options where CREDIT CARD details are supplied.
+#
 class EcontextTest < Test::Unit::TestCase
 
   SHOP_ID       = 'A00000'
