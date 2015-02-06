@@ -66,7 +66,7 @@ module ActiveMerchant #:nodoc:
         saison:           '2S10035', # Credit Saison
         nicos_dc:         '2a99662', # Mitsubishi UFJ NICOS (DC)
         uc:               '2a99665', # UC
-        jcb:              '2a99661', #JCB
+        jcb:              '2a99661', # JCB
         amex:             '2a99819', # American Express
         aeon:             '2S63046', # AEON
         aplus:            '2s59681', # Aplus
