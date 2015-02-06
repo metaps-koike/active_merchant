@@ -338,6 +338,35 @@ module ActiveMerchant #:nodoc:
         commit(post, authorization[:previous_paymt_code], authorization[:previous_order_id])
       end
 
+      # Store a Credit Card and obtain a token that will be used to represent it
+      #
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === payment
+      #
+      # This MUST be a ActiveMerchant::Billing::CreditCard instance
+      # Specify the:
+      #  * number
+      #  * month
+      #  * year
+      #  * verification_value
+      #  * name
+      #
+      # 'brand' will be ignored if it is specified.
+      #
+      # === Options
+      #
+      #  * <tt>:customer => +string+</tt> - Specify a unique customer_id which will be used in future 'Card Membership' operations
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:ecn_token</tt>
+      #  * <tt>:user_token</tt> - This token can be used in future operations
+      #  * <tt>:card_aquirer_code</tt>
+      #  * <tt>:previous_order_id</tt> - Not used
+      #  * <tt>:previous_paymt_code</tt> - Not used
+      #
       def store(payment, options = {})
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
           requires!(options, :customer)
