@@ -91,7 +91,6 @@ class RemoteEcontextTest < Test::Unit::TestCase
     assert_equal '正常', auth.message
 
     options = {
-        order_id: stamp
     }
     assert capture = @gateway.capture(@amount, auth.authorization, options)
     assert_success capture
@@ -112,10 +111,10 @@ class RemoteEcontextTest < Test::Unit::TestCase
 
   def test_failed_capture
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
-    options = {
-        order_id: stamp,
+    authorization = {
+        previous_order_id: stamp
     }
-    response = @gateway.capture(@amount, nil, options)
+    response = @gateway.capture(@amount, authorization)
     assert_failure response
   end
 
@@ -141,13 +140,11 @@ class RemoteEcontextTest < Test::Unit::TestCase
     auth = @gateway.authorize(@amount, @credit_card, options)
     assert_success auth
 
-    options = {
-        order_id: stamp
-    }
-    assert capture = @gateway.capture(@amount, auth.authorization, options)
+    assert capture = @gateway.capture(@amount, auth.authorization)
     assert_success capture
 
-    assert refund = @gateway.refund(nil, capture.authorization)
+    # NOTE - The auth.authorization should be used, as it contains the order_id
+    assert refund = @gateway.refund(nil, auth.authorization)
     assert_success refund
   end
 
@@ -190,6 +187,7 @@ class RemoteEcontextTest < Test::Unit::TestCase
 
     assert void = @gateway.void(auth.authorization)
     assert_success void
+    assert_equal '00異常なし', void.message
   end
 
   def test_failed_void

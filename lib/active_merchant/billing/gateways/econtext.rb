@@ -160,7 +160,7 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:user_token</tt>
       #  * <tt>:card_aquirer_code</tt>
       #  * <tt>:previous_order_id</tt> - The order_id used in this operation
-      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinquishes between basic 'C10' and card membership 'C20'
+      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'
       #
       def purchase(money, payment, options={})
         purchase_or_auth(FNC_CODES[:cash_card_reg_auth_sale], money, payment, options)
@@ -204,32 +204,94 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:user_token</tt>
       #  * <tt>:card_aquirer_code</tt>
       #  * <tt>:previous_order_id</tt> - The order_id used in this operation
-      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinquishes between basic 'C10' and card membership 'C20'
+      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'
       #
       def authorize(money, payment, options={})
         purchase_or_auth(FNC_CODES[:card_register_and_auth], money, payment, options)
       end
 
+      # Perform a capture
+      #
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
+      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
+      # Partial capture is not supported, so the money value must be the same as the previous authorization.
+      #
+      # === Options
+      #
+      # ==== Basic
+      #
+      # To use this operation, +options+ should NOT contain a populated +:customer+ key/value pair.
+      #
+      # ==== Card Membership
+      #
+      # To use this operation, +options+ should contain a populated +:customer+ key/value pair.
+      #
+      # === authorization
+      #
+      #  * <tt>:previous_order_id => +string+</tt> Unique id. This is the order_id used in a previous sale or auth/capture
+      #  * <tt>:previous_paymt_code => +string+</tt> Indicate if the previous sale or auth/capture was a Basic operation ('C10') or Card Membership ('C20')
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:ecn_token</tt>
+      #  * <tt>:user_token</tt>
+      #  * <tt>:card_aquirer_code</tt>
+      #  * <tt>:previous_order_id</tt> - The order_id used in this operation
+      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'
+      #
       def capture(money, authorization, options={})
         pCode = ''
         if options.has_key?(:customer) && !options[:customer].nil?
           # Membership
-          requires!(options, :order_id)
+          requires!(authorization, :previous_order_id)
           pCode = PAYMENT_CODE[:card_membership]
-          post = build_capture_post(pCode, FNC_CODES[:capture], money, options)
+          post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization)
           post['cduserID'] = options[:customer] #single-byte alphanumeric within 36 characters
         else
-          requires!(options, :order_id)
+          requires!(authorization, :previous_order_id)
           # Non-membership
           pCode = PAYMENT_CODE[:card_non_membership]
-          post = build_capture_post(pCode, FNC_CODES[:capture], money, options)
+          post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization)
         end
         commit(post, pCode, options[:order_id])
       end
 
+      # Perform a refund of capture or sale.
+      #
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === money
+      #
+      # Partial Refund is supported. If a full refund is required, +nil+ should be used for the +money+ parameter.
+      # When a partial refund is required, the money value supplied as the new transaction charge, NOT the amount to refund.
+      # For example, $100 capture. If you want to refund $40 back to the cardholder, you need to specify $60 (the new capture value)
+      #
+      # === Options
+      #
+      #  None required
+      #
+      # === authorization
+      #
+      #  * <tt>:previous_order_id => +string+</tt> Unique id. This is the order_id used in a previous sale or auth/capture
+      #  * <tt>:previous_paymt_code => +string+</tt> Indicate if the previous sale or auth/capture was a Basic operation ('C10') or Card Membership ('C20')
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:ecn_token</tt>
+      #  * <tt>:user_token</tt>
+      #  * <tt>:card_aquirer_code</tt>
+      #  * <tt>:previous_order_id</tt> - The order_id used in this operation
+      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'.
+      #
       def refund(money, authorization, options={})
         if money.nil?
-          void(authorization, options)
+          void(authorization)
         else
           # money is the new transaction charge, NOT the amount to refund
           requires!(authorization, :previous_paymt_code, :previous_order_id)
@@ -243,7 +305,30 @@ module ActiveMerchant #:nodoc:
         end
       end
 
+      # Perform a void of authorization
+      #
+      # The method requires that valid data is defined in the +options+ hash.
+      #
+      # === Options
+      #
+      #  None required
+      #
+      # === authorization
+      #
+      #  * <tt>:previous_order_id => +string+</tt> Unique id. This is the order_id used in a previous sale or auth/capture
+      #  * <tt>:previous_paymt_code => +string+</tt> Indicate if the previous sale or auth/capture was a Basic operation ('C10') or Card Membership ('C20')
+      #
+      # === Response
+      #
+      # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:ecn_token</tt>
+      #  * <tt>:user_token</tt>
+      #  * <tt>:card_aquirer_code</tt>
+      #  * <tt>:previous_order_id</tt> - The order_id used in this operation
+      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'.
+      #
       def void(authorization, options={})
+        puts "\nvoid, authorization[:previous_order_id] = #{authorization[:previous_order_id]}"
         requires!(authorization, :previous_paymt_code, :previous_order_id)
         post = {
           'paymtCode' => authorization[:previous_paymt_code],
@@ -308,11 +393,11 @@ module ActiveMerchant #:nodoc:
         commit(post, pCode, options[:order_id])
       end
 
-      def build_capture_post(pCode, fCode, money, options={} )
+      def build_capture_post(pCode, fCode, money, authorization={} )
         {
             'paymtCode' => pCode,
             'fncCode' => fCode,
-            'orderID' => options[:order_id], # 6-47 characters, unique per shop_id
+            'orderID' => authorization[:previous_order_id], # 6-47 characters, unique per shop_id
             'ordAmount' => localized_amount(money, 'JPY').to_i.to_s, # 1-999999 single-byte characters
             'shipDate' => Time.now.getutc.strftime("%Y/%m/%d") # This is the capture date
         }

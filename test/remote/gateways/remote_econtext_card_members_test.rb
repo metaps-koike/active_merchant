@@ -109,16 +109,14 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: order,
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
     assert_equal '正常', auth.message
 
     options = {
-        order_id: order,
         customer: cust
     }
     assert capture = @gateway.capture(@amount, auth.authorization, options)
@@ -157,15 +155,13 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: order,
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
 
     options = {
-        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
         customer: '111'
     }
     bad_auth = {
@@ -177,9 +173,9 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     }
     assert response = @gateway.capture(@amount, bad_auth, options)
     assert_failure response
-    assert_equal 'C2106', response.params['infocode']
+    assert_equal 'E1010', response.params['infocode']
     assert_equal '-2', response.params['status']
-    assert_equal '注文情報なし', response.message
+    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
   end
 
   def test_successful_refund
