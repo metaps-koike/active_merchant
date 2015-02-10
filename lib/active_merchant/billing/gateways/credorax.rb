@@ -7,7 +7,7 @@ module ActiveMerchant #:nodoc:
     # This ActiveMerchant Gateway class supports two forms of interaction with Credorax.
     #
     # * Basic Operations - Credit Card must be supplied in Purchase and Authorisation calls, Previous referral code for other options
-    # * Card-on-file Operations - Credit Card details are stored with Credorax and referenced in future opertations with a Card Token
+    # * Card-on-file Operations - Credit Card details are stored with Credorax and referenced in future operations with a Card Token
     #
     # This gateway class uses the following ActiveMerchant method to Credorax operation mapping
     # The standard list of gateway functions that most concrete gateway subclasses implement is:
@@ -18,7 +18,9 @@ module ActiveMerchant #:nodoc:
     # | authorize       |  [2] Authorisation       |  [12] Use Token - Auth
     # | capture         |  [3] Capture             |  [13] Use Token - Capture
     # | void            |  [4] Authorisation Void  |  [14] Token Auth Void
-    # | refund          |  [9] Capture Void        |  [15] Token Referral Credit
+    # | refund          |  [7] Sale Void           |  [7] Sale Void
+    # |                 |  [9] Capture Void        |  [9] Capture Void
+    # |                 |  [5] Referral Credit     |  [5] Referral Credit
     # | store           |  N/A                     |  [10] Create Token
     #
     #
@@ -29,6 +31,8 @@ module ActiveMerchant #:nodoc:
           authorisation:                '2',
           capture:                      '3',
           authorisation_void:           '4',
+          referral_credit:              '5',
+          sale_void:                    '7',
           capture_void:                 '9',
           create_token:                 '10',
           use_token_sale:               '11',
@@ -49,40 +53,37 @@ module ActiveMerchant #:nodoc:
 
       # Codes returned in the 'z2' response parameter
       RESULT_CODES = {
-        missing_valid_3d_secure_data:         '-13',
-        missing_card_secure_code:             '-12',
-        currency_not_supported_by_merchant:   '-11',
-        unclassified_error:                   '-10',
-        parameter_malformed:                  '-9',
-        package_signature_malformed:          '-8',
-        no_response_from_gateway:             '-7',
-        transaction_rejected:                 '-5',
-        account_status_not_updated:           '-3',
-        account_does_not_exist:               '-2',
-        account_already_exists:               '-1',
-        success:                              '0',
-        transaction_denied:                   '1',
-        transaction_denied_high_fraud_risk:   '2',
-        transaction_denied_high_avs_risk:     '03',
+        missing_valid_3d_secure_data:           '-13',
+        missing_card_secure_code:               '-12',
+        currency_not_supported_by_merchant:     '-11',
+        unclassified_error:                     '-10',
+        parameter_malformed:                    '-9',
+        package_signature_malformed:            '-8',
+        no_response_from_gateway:               '-7',
+        transaction_rejected:                   '-5',
+        account_status_not_updated:             '-3',
+        account_does_not_exist:                 '-2',
+        account_already_exists:                 '-1',
+        success:                                '0',
+        transaction_denied:                     '1',
+        transaction_denied_high_fraud_risk:     '2',
+        transaction_denied_high_avs_risk:       '03',
         transaction_denied_interchange_timeout: '04',
-        transaction_declined:                 '05',
-        redirect_url_issued:                  '7',
-        transaction_denied_luhn_check_fail:   '9',
-        transaction_partially_approved:       '10',
-        transaction_3d_enrolled:              '100'
+        transaction_declined:                   '05',
+        redirect_url_issued:                    '7',
+        transaction_denied_luhn_check_fail:     '9',
+        transaction_partially_approved:         '10',
+        transaction_3d_enrolled:                '100'
       }
 
       self.test_url = 'https://intconsole.credorax.com/intenv/service/gateway'
-      self.live_url = 'https://example.com/live' # TODO
 
-      self.supported_countries = ['US', 'JP', 'CA', 'GB'] # TODO
+      self.supported_countries = %w(US JP AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE GB) # US, JP, EU28
       self.default_currency = 'EUR'
-      self.supported_cardtypes = [:visa, :master, :jcb]
+      self.supported_cardtypes = [:visa, :master]
 
       self.homepage_url = 'http://epower.credorax.com'
       self.display_name = 'Credorax'
-
-      STANDARD_ERROR_CODE_MAPPING = {}
 
       # Initialize the Gateway
       #
@@ -131,11 +132,12 @@ module ActiveMerchant #:nodoc:
       # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
       # Specify the:
       #  * number
-      #  * brand
       #  * month
       #  * year
       #  * verification_value
       #  * name
+      #
+      # 'brand' will be ignored if it is specified.
       #
       # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
       #  * <tt>:city</tt> - The Cardholder's billing address city.
@@ -166,6 +168,7 @@ module ActiveMerchant #:nodoc:
       def purchase(money, payment, options={})
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
+
           requires!(options, :email, :ip, :order_id, :description)
           # Sale
           post = {
@@ -187,6 +190,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)           # Item information
           add_customer_data(post, options)
         end
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -210,11 +214,13 @@ module ActiveMerchant #:nodoc:
       # To use this operation, +payment+ should be a ActiveMerchant::Billing::CreditCard instance.
       # Specify the:
       #  * number
-      #  * brand
       #  * month
       #  * year
       #  * verification_value
       #  * name
+      #
+      # 'brand' will be ignored if it is specified.
+      #
       #
       # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
       #  * <tt>:city</tt> - The Cardholder's billing address city.
@@ -267,7 +273,7 @@ module ActiveMerchant #:nodoc:
           add_customer_data(post, options)
           add_billing_address_data(post, options)     # Billing Address Info
         end
-
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -332,74 +338,64 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)           # Item information - We allow partial amounts
           add_previous_request_data(post, authorization)
         end
-
+        add_d2_certification(post, options)
         commit(post)
       end
 
       # Perform a refund of capture or sale.
       #
-      # This method will either send a "[9] Capture Void" or "[15] Token Referral Credit" operation.
+      # This method will either send a [7] Sale Void, [9] Capture Void, or [5] Referral Credit operation.
       # The method requires that valid data is defined in the +options+ hash.
       #
       # === money
       #
-      # Only used by "[15] Token Referral Credit", ignored by "[9] Capture Void"
-      # Two exponents are implied, without a decimal, except for currencies with zero exponents (e.g. JPY).
-      # For example, when paying 10.00 GBP, the value should be sent as 1000. When paying 10 JPY, the value should be sent as 10.
-      # The amount specified allows a partial refund.
-      # In the case of "[9] Capture Void", it is ignored because only a full refund is supported.
+      # Partial Refund not supported
       #
       # === Options
       #
       #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
       #
-      # ==== [9] Capture Void
-      #
-      # To use this operation, +authorization+ should NOT contain a populated +:token+ key/value pair.
+      # ==== [7] Sale Void, [9] Capture Void, [5] Referral Credit
       #
       # Cardholder billing address details are not needed.
       #
-      # ==== [15] Token Referral Credit
+      # Also note, that due to Credorax's transaction states it is necessary to call the correct 'refund' operation
+      # This requires the use of a non-standard +option+, with a key of +:refund_type+
       #
-      # To use this operation, +authorization+ should contain a populated +:token+ key/value pair.
+      #  * <tt>:capture               </tt> If the transaction was created via [3] Capture AND was done so after the latest 'clearing' date (00:00UTC+02)
+      #  * <tt>:sale                  </tt> If the transaction was created via [1] Sale AND was done so after the latest 'clearing' date (00:00UTC+02)
+      #  * <tt>:post_clearing_credit  </tt> If the Sale/Capture time was before lastest 'clearing date' (so, has now been passed clearing)
       #
-      # Cardholder billing address details are not needed.
+      # If this parameter is not specified, then it will default to :post_clearing_credit
       #
       # === Response
       #
       # response[:authorization] contains a hash with the following key/value pairs
-      #  * <tt>:token</tt> - This is not returned for [9] Capture Void
       #  * <tt>:authorization_code</tt> - This will be set to 0
       #  * <tt>:response_id</tt>
       #  * <tt>:transaction_id</tt> - This will be set to nil
       #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
       #
       def refund(money, authorization, options={})
-
-        if authorization.has_key?(:token) && !authorization[:token].blank?
-          # Token Referral Credit
-          requires!(options, :ip, :order_id)
-          post = {
-              'O' => ACTIONS[:token_referral_credit], # Operation Code
-          }
-          add_request_id(post, options)
-          add_token(post, authorization[:token])
-          add_invoice(post, money, options)           # Item information
-          add_customer_data(post, options)
-          add_previous_request_data(post, authorization)
+        requires!(options, :ip, :order_id, :refund_type)
+        mapping = {
+            capture:              ACTIONS[:capture_void],
+            sale:                 ACTIONS[:sale_void],
+            post_clearing_credit: ACTIONS[:referral_credit]
+        }
+        if options.has_key?(:refund_type) && !options[:refund_type].blank?
+          opcode = mapping[options[:refund_type]]
         else
-
-          # Capture Void
-          requires!(options, :ip, :order_id)
-          post = {
-              'O' => ACTIONS[:capture_void],          # Operation Code
-          }
-          add_request_id(post, options)
-          add_customer_data(post, options)
-          add_invoice(post, nil, options)             # Item information
-          add_previous_request_data(post, authorization)
+          opcode = ACTIONS[:referral_credit]
         end
+        post = {
+            'O' => opcode,              # Operation Code
+        }
+        add_request_id(post, options)
+        add_customer_data(post, options)
+        add_previous_request_data(post, authorization)
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -462,7 +458,7 @@ module ActiveMerchant #:nodoc:
           add_customer_data(post, options)
           add_previous_request_data(post, authorization)
         end
-
+        add_d2_certification(post, options)
         commit(post)
       end
 
@@ -480,11 +476,12 @@ module ActiveMerchant #:nodoc:
       #  +payment+ is a ActiveMerchant::Billing::CreditCard instance.
       # Specify the:
       #  * number
-      #  * brand
       #  * month
       #  * year
       #  * verification_value
       #  * name
+      #
+      # 'brand' will be ignored if it is specified.
       #
       # Cardholder billing address details can be stored in +options[:billing_address]+ or +options[:address]+
       #  * <tt>:city</tt> - The Cardholder's billing address city.
@@ -510,16 +507,15 @@ module ActiveMerchant #:nodoc:
               'O' => ACTIONS[:create_token],       # Operation Code
           }
           add_request_id(post, options)
-          add_invoice(post, 100, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response)
+          add_invoice(post, 100000, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response)
           add_payment(post, payment)
           add_customer_data(post, options)
           add_billing_address_data(post, options)
         else
           raise ArgumentError, 'payment must be a Credit card (ActiveMerchant::Billing::CreditCard)'
         end
-
+        add_d2_certification(post, options)
         commit(post)
-
       end
 
       def verify(credit_card, options={})
@@ -556,7 +552,6 @@ module ActiveMerchant #:nodoc:
       def add_billing_address_data(data, options)
         billing_address = options[:billing_address] || options[:address]
         if billing_address
-          # TODO - Correct Mapping for c4 - Billing Street Number and c5 - Billing Street Name
           if billing_address.has_key? :city
             data['c7'] = billing_address[:city] # Billing City Name
           end
@@ -581,6 +576,11 @@ module ActiveMerchant #:nodoc:
           post['a4'] = amount(money).to_i.to_s        # Billing Amount - Whole numbers (cents) as string
         end
 
+        if options.has_key?(:currency) && !options[:currency].nil?
+          # Override the default currency
+          post['a5'] = options[:currency]
+        end
+
         if options.has_key? :description
           if options[:description].length > 13
             raise ArgumentError, 'transaction description can has maximum length of 13 characters'
@@ -595,8 +595,15 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_payment(post, payment)
+
+        unless payment.brand.blank?
+          # Specifying the brand is not recommended, but must support it
+          # Need to by-pass the getter method on ActiveMerchant::Billing::CreditCard which does a
+          # BIN to Brand lookup
+          post['b2'] = card_brand(payment.instance_variable_get('@brand'))
+        end
+
         post['b1'] = payment.number                 # Card Number
-        post['b2'] = card_brand_code(payment.brand) # Card Type ID
         post['b3'] = '%02d' % payment.month         # Card Expiration Month (MM) - ActiveMerchant Card stores as FixNum
         post['b4'] = payment.year.to_s[-2..-1]      # Card Expiration Year (YY) - ActiveMerchant Card stores as FixNum
         post['b5'] = payment.verification_value     # Card Secure Code, Visa
@@ -612,12 +619,21 @@ module ActiveMerchant #:nodoc:
         results
       end
 
+      def add_d2_certification(post, options)
+        # This is only used during certification purposes, and is ignored in integration environments
+        # However, it should not normally be specified.
+        if options.has_key? :d2
+          post['d2'] = options[:d2]
+        end
+      end
+
       def commit(parameters)
 
         url = (test? ? test_url : @options[:live_url])
 
-        # Add Merchant ID, then create the MD5 message and add to parameters
+        # Add Merchant ID,
         parameters['M'] = @options[:merchant_id]    # MerchantID
+        # then create the MD5 message and add to parameters
         parameters['K'] = create_md5_message(parameters, @options[:md5_cipher_key])
 
         response = parse(ssl_post(url, post_data(parameters)))
@@ -653,10 +669,14 @@ module ActiveMerchant #:nodoc:
           authorization_code: response['z4'],
           response_id: response['z1'],
           transaction_id: response['z13'],
-          previous_request_id: response['a1']
+          previous_request_id: response['a1'],
+          response_reason_code: response['z6']
         }
         unless response['g1'].blank?
           auth[:token] = response['g1']
+        end
+        unless response['d2'].blank?
+          auth[:d2] = response['d2']
         end
         auth
       end
@@ -698,23 +718,19 @@ module ActiveMerchant #:nodoc:
         md5.hexdigest
       end
 
-      # Convert ActiveMerchant::Billing::CreditCard.brand string into numeric code
-      # for Credorax
-      def card_brand_code(brand)
-
-        map = {
-          'visa'      => '1',
-          'master'    => '2',
-          'maestro'   => '9'
-        } # All others map 0
-
-        if map.has_key?(brand)
-          return map[brand]
-        else
-          return '0' # Unknown
+      def card_brand(brand)
+        if brand.is_a? Symbol
+          branding_mapping = {
+              visa:     1,
+              master:   2,
+              maestro:  9
+          }
+          return branding_mapping.has_key?(brand) ? branding_mapping[brand] : 0
         end
-
+        # use value supplied
+        return brand.to_s
       end
+
     end
   end
 end
