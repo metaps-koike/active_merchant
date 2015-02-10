@@ -3,7 +3,6 @@ require 'nokogiri'
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
 
-
     #
     # == Description
     # The EcontextGateway class supports interaction with {ECONTEXT's}[http://www.econtext.jp] Payment Gateway Service.
@@ -82,19 +81,16 @@ module ActiveMerchant #:nodoc:
       }
 
       self.test_url = 'https://test.econ.ne.jp/odr/rcv/rcv_odr.aspx'
-      #self.live_url = 'https://example.com/live' - NOT USED
 
-      self.supported_countries = ['JP']
-      self.default_currency = 'JPY'
-      self.money_format = :dollars
-      self.supported_cardtypes = [:visa, :master, :american_express, :discover]
+      self.supported_countries = ['JP']             # Japan only
+      self.default_currency = 'JPY'                 # Japan only
+      self.money_format = :dollars                  # Yen does not have a 'minor part'
+      self.supported_cardtypes = [:american_express, :jcb, :diners_club]
 
-      self.ssl_version = :SSLv3
+      self.ssl_version = :SSLv3                     # Need to enforce this protocol
 
-      self.homepage_url = 'http://www.econtext.jp' # Japanese Language
+      self.homepage_url = 'http://www.econtext.jp'  # Japanese Language
       self.display_name = 'ECONTEXT'
-
-      STANDARD_ERROR_CODE_MAPPING = {}
 
       # Initialize the Gateway
       #
@@ -103,17 +99,17 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:shop_id => +string+</tt> - This will be assigned to you from ECONTEXT. Known as the SITE CODE (サイトコード)
-      #  * <tt>:chk_code => +string+</tt> - This will be assigned to you from ECONTEXT. Known as the SITE CHECK CODE (サイトチェックコード)
-      #  * <tt>:live_url => +string+</tt> This will be assigned to you from ECONTEXT.
-      #  * <tt>:test => +true+ or +false+</tt> - Force test transactions
+      #  * <tt>:shop_id => +string+</tt>        - This will be assigned to you from ECONTEXT. Known as the SITE CODE (サイトコード)
+      #  * <tt>:chk_code => +string+</tt>       - This will be assigned to you from ECONTEXT. Known as the SITE CHECK CODE (サイトチェックコード)
+      #  * <tt>:live_url => +string+</tt>       - This will be assigned to you from ECONTEXT.
+      #  * <tt>:test => +true+ or +false+</tt>  - Force test transactions
       #
       # For example:
       # ```
       # @gateway = EcontextGateway.new(
       #     shop_id: 'AA00001',
       #     chk_code: 'A23SD5',
-      #     live_url: 'https://test.econ.ne.jp/odr/rcv/rcv_odr.aspx' # <--This is the test url
+      #     live_url: 'https://test.econ.ne.jp/odr/rcv/rcv_odr.aspx' # <--This example is the test url
       # )
       # ```
       #
@@ -146,7 +142,7 @@ module ActiveMerchant #:nodoc:
       #  * name
       #
       # Also, additional parameters need to be defined in options
-      #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement.
+      #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement. Single-byte 22 characters
       #
       # ==== Card Membership
       #
@@ -190,7 +186,7 @@ module ActiveMerchant #:nodoc:
       #  * name
       #
       # Also, additional parameters need to be defined in options
-      #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement.
+      #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement. Single-byte 22 characters
       #
       # ==== Card Membership
       #
@@ -224,11 +220,11 @@ module ActiveMerchant #:nodoc:
       #
       # ==== Basic
       #
-      # To use this operation, +options+ should NOT contain a populated +:customer+ key/value pair.
+      # To use this operation, +options+ should NOT contain a populated +:customer+ key/value pair. It is a single-byte alphanumeric within 36 characters
       #
       # ==== Card Membership
       #
-      # To use this operation, +options+ should contain a populated +:customer+ key/value pair.
+      # To use this operation, +options+ should contain a populated +:customer+ key/value pair. It is a single-byte alphanumeric within 36 characters
       #
       # === authorization
       #
@@ -246,14 +242,13 @@ module ActiveMerchant #:nodoc:
       #
       def capture(money, authorization, options={})
         pCode = ''
+        requires!(authorization, :previous_order_id)
         if options.has_key?(:customer) && !options[:customer].nil?
           # Membership
-          requires!(authorization, :previous_order_id)
           pCode = PAYMENT_CODE[:card_membership]
           post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization)
-          post['cduserID'] = options[:customer] #single-byte alphanumeric within 36 characters
+          post['cduserID'] = options[:customer]
         else
-          requires!(authorization, :previous_order_id)
           # Non-membership
           pCode = PAYMENT_CODE[:card_non_membership]
           post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization)
@@ -269,7 +264,7 @@ module ActiveMerchant #:nodoc:
       #
       # Partial Refund is supported. If a full refund is required, +nil+ should be used for the +money+ parameter.
       # When a partial refund is required, the money value supplied as the new transaction charge, NOT the amount to refund.
-      # For example, $100 capture. If you want to refund $40 back to the cardholder, you need to specify $60 (the new capture value)
+      # For example, 10000 Yen capture. If you want to refund 4000 Yen back to the cardholder, you need to specify 6000 Yen (the new capture value)
       #
       # === Options
       #
@@ -286,8 +281,8 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:ecn_token</tt>
       #  * <tt>:user_token</tt>
       #  * <tt>:card_aquirer_code</tt>
-      #  * <tt>:previous_order_id</tt> - The order_id used in this operation
-      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'.
+      #  * <tt>:previous_order_id</tt>    - The order_id used in this operation
+      #  * <tt>:previous_paymt_code</tt>  - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'.
       #
       def refund(money, authorization, options={})
         if money.nil?
@@ -298,8 +293,8 @@ module ActiveMerchant #:nodoc:
           post = {
               'paymtCode' => authorization[:previous_paymt_code],
               'fncCode' => FNC_CODES[:change_charge_amount],
-              'orderID' => authorization[:previous_order_id], # 6-47 characters, unique per shop_id
-              'ordAmount' => localized_amount(money, 'JPY').to_i.to_s, # 1-999999 single-byte characters
+              'orderID' => authorization[:previous_order_id],           # 6-47 characters, unique per shop_id
+              'ordAmount' => localized_amount(money, 'JPY').to_i.to_s,  # 1-999999 single-byte characters
           }
           commit(post, authorization[:previous_paymt_code], authorization[:previous_order_id])
         end
@@ -324,11 +319,10 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:ecn_token</tt>
       #  * <tt>:user_token</tt>
       #  * <tt>:card_aquirer_code</tt>
-      #  * <tt>:previous_order_id</tt> - The order_id used in this operation
-      #  * <tt>:previous_paymt_code</tt> - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'.
+      #  * <tt>:previous_order_id</tt>    - The order_id used in this operation
+      #  * <tt>:previous_paymt_code</tt>  - The +paymt_code+ used in this operation, distinguishes between basic 'C10' and card membership 'C20'.
       #
       def void(authorization, options={})
-        puts "\nvoid, authorization[:previous_order_id] = #{authorization[:previous_order_id]}"
         requires!(authorization, :previous_paymt_code, :previous_order_id)
         post = {
           'paymtCode' => authorization[:previous_paymt_code],
@@ -400,7 +394,7 @@ module ActiveMerchant #:nodoc:
           pCode = PAYMENT_CODE[:card_non_membership]
           # Non-membership
           post = {
-              'orderDate' => Time.now.getutc.strftime("%Y/%m/%d %H:%M:%S") #yyyy/mm/dd hh:mm:ss
+              'orderDate' => Time.now.getutc.strftime("%Y/%m/%d %H:%M:%S")
           }
           add_invoice(post, money, options)
           add_econ_payment_page_settings(post, options)
@@ -410,14 +404,14 @@ module ActiveMerchant #:nodoc:
           requires!(options, :order_id)
           pCode = PAYMENT_CODE[:card_membership]
           post = {
-              'cduserID' => payment, #single-byte alphanumeric within 36 characters
-              'cd3secFlg' => 0 # Do NOT activate 3d secure
+              'cduserID' => payment,                                  #single-byte alphanumeric within 36 characters
+              'cd3secFlg' => 0                                        # Do NOT activate 3d secure
           }
           add_invoice(post, money, options)
         end
         post['paymtCode'] = pCode
         post['fncCode'] = action
-        post['orderID'] = options[:order_id] # 6-47 characters, unique per shop_id
+        post['orderID'] = options[:order_id]                          # 6-47 characters, unique per shop_id
         post['sessionID'] = options[:order_id]
         commit(post, pCode, options[:order_id])
       end
@@ -426,15 +420,15 @@ module ActiveMerchant #:nodoc:
         {
             'paymtCode' => pCode,
             'fncCode' => fCode,
-            'orderID' => authorization[:previous_order_id], # 6-47 characters, unique per shop_id
-            'ordAmount' => localized_amount(money, 'JPY').to_i.to_s, # 1-999999 single-byte characters
-            'shipDate' => Time.now.getutc.strftime("%Y/%m/%d") # This is the capture date
+            'orderID' => authorization[:previous_order_id],           # 6-47 characters, unique per shop_id
+            'ordAmount' => localized_amount(money, 'JPY').to_i.to_s,  # 1-999999 single-byte characters
+            'shipDate' => Time.now.getutc.strftime("%Y/%m/%d")        # This is the capture date
         }
       end
 
       def add_invoice(post, money, options)
-        post['itemName'] = options[:description] # single-byte 22 characters
-        post['ordAmount'] = localized_amount(money, 'JPY').to_i.to_s # 1-999999 single-byte characters
+        post['itemName'] = options[:description]                      # single-byte 22 characters
+        post['ordAmount'] = localized_amount(money, 'JPY').to_i.to_s  # 1-999999 single-byte characters
         post['ordAmountTax'] = '0'
         post['commission'] = '0'
       end
@@ -447,8 +441,8 @@ module ActiveMerchant #:nodoc:
       def add_payment(post, payment)
         post['econCardno'] = payment.number
         post['cardExpdate'] = "#{payment.year.to_s}#{'%02d' % payment.month}" # 'yyyymm' format
-        post['payCnt'] = '00' # Default to 'lump-sum payment'
-        post['cd3secFlg'] = 0 # Do NOT activate 3d secure
+        post['payCnt'] = '00'                                                 # Default to 'lump-sum payment'
+        post['cd3secFlg'] = 0                                                 # Do NOT activate 3d secure
         post['CVV2'] = '%04d' % payment.verification_value
       end
 
