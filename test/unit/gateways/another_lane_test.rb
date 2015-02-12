@@ -26,7 +26,7 @@ class AnotherLaneTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
 
-    assert_equal '1403068210744', response.authorization
+    assert_equal '1403068210743', response.authorization
     assert response.test?
   end
 
@@ -37,7 +37,7 @@ class AnotherLaneTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, nil, @options)
     assert_success response
 
-    assert_equal '1403068210744', response.authorization
+    assert_equal '1403068210743', response.authorization
     assert response.test?
   end
 
