@@ -26,8 +26,7 @@ class CredoraxTest < Test::Unit::TestCase
     @gateway = CredoraxGateway.new(
       merchant_id: MERCHANT_ID,
       md5_cipher_key: MD5_CIPHER_KEY,
-      name_on_statement: NAME_ON_STATEMENT,
-      live_url: 'http://www.example.com'
+      name_on_statement: NAME_ON_STATEMENT
     )
 
     @credit_card = credit_card(CARD_NUMBER,
@@ -74,7 +73,8 @@ class CredoraxTest < Test::Unit::TestCase
         :authorization_code=>AUTHORIZATION_CODE,
         :response_id=>RESPONSE_ID,
         :transaction_id=>TRANSACTION_ID,
-        :previous_request_id=>@order_id
+        :previous_request_id=>@order_id,
+        :response_reason_code=>"00"
     }
     assert_equal expected, response.authorization
     assert_equal 'Transaction+has+been+executed+successfully.', response.message
@@ -107,7 +107,8 @@ class CredoraxTest < Test::Unit::TestCase
         :authorization_code=>AUTHORIZATION_CODE,
         :response_id=>RESPONSE_ID,
         :transaction_id=>TRANSACTION_ID,
-        :previous_request_id=>@order_id
+        :previous_request_id=>@order_id,
+        :response_reason_code=>"00"
     }
     assert_equal expected, auth.authorization
     assert_equal 'Transaction+has+been+executed+successfully.', auth.message
@@ -123,7 +124,8 @@ class CredoraxTest < Test::Unit::TestCase
         :authorization_code=>'0',
         :response_id=>RESPONSE_ID,
         :transaction_id=>nil,
-        :previous_request_id=>@options[:order_id]
+        :previous_request_id=>@options[:order_id],
+        :response_reason_code=>"00"
     }
     assert_equal expected, capture.authorization
     assert_equal 'Transaction+has+been+executed+successfully.', capture.message
@@ -163,7 +165,8 @@ class CredoraxTest < Test::Unit::TestCase
         :authorization_code=>'0',
         :response_id=>RESPONSE_ID,
         :transaction_id=>nil,
-        :previous_request_id=>@options[:order_id]
+        :previous_request_id=>@options[:order_id],
+        :response_reason_code=>"00"
     }
     assert_equal expected, capture.authorization
     assert_equal 'Transaction+has+been+executed+successfully.', capture.message

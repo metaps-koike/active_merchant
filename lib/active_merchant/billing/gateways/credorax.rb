@@ -95,7 +95,7 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:merchant_id => +string+</tt> - This will be assigned to you from Credorax. There is one per currency.
       #  * <tt>:md5_cipher_key => +string+</tt> - This will be assigned to you from Credorax and is used to generate parameter 'K' before sending API calls.
       #  * <tt>:name_on_statement => +string+</tt> Used to define the Billing Descriptor, by setting an 'DBA' (see "ePower Payment API - Implementation Guide Version 1.2 Apr 2013")
-      #  * <tt>:live_url => +string+</tt> Credorax will only supply this to you after you have passed certification with them.
+      #  * <tt>:live_url => +string+</tt> Credorax will only supply this to you after you have passed certification with them. (Only required if :test is false)
       #  * <tt>:test => +true+ or +false+</tt> - Force test transactions
       #
       # For example:
@@ -107,7 +107,11 @@ module ActiveMerchant #:nodoc:
       # )
       # ```
       def initialize(options={})
-        requires!(options, :md5_cipher_key, :merchant_id, :name_on_statement, :live_url)
+        requires!(options, :md5_cipher_key, :merchant_id, :name_on_statement)
+        if options.has_key? :test && !options[:test].nil? && !options[:test]
+          # Not test mode, also require the live_url
+          requires!(options, :live_url)
+        end
         super
       end
 
