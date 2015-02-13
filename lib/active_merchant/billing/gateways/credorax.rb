@@ -95,7 +95,7 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:merchant_id => +string+</tt> - This will be assigned to you from Credorax. There is one per currency.
       #  * <tt>:md5_cipher_key => +string+</tt> - This will be assigned to you from Credorax and is used to generate parameter 'K' before sending API calls.
       #  * <tt>:name_on_statement => +string+</tt> Used to define the Billing Descriptor, by setting an 'DBA' (see "ePower Payment API - Implementation Guide Version 1.2 Apr 2013")
-      #  * <tt>:live_url => +string+</tt> Credorax will only supply this to you after you have passed certification with them.
+      #  * <tt>:live_url => +string+</tt> Credorax will only supply this to you after you have passed certification with them. (Only required if :test is false)
       #  * <tt>:test => +true+ or +false+</tt> - Force test transactions
       #
       # For example:
@@ -107,7 +107,11 @@ module ActiveMerchant #:nodoc:
       # )
       # ```
       def initialize(options={})
-        requires!(options, :md5_cipher_key, :merchant_id, :name_on_statement, :live_url)
+        requires!(options, :md5_cipher_key, :merchant_id, :name_on_statement)
+        if options.has_key? :test && !options[:test].nil? && !options[:test]
+          # Not test mode, also require the live_url
+          requires!(options, :live_url)
+        end
         super
       end
 
@@ -123,9 +127,11 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
       #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement. Max length is 13 characters.
+      #
+      # Additional, the following is optional.
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder. It will default to '1.1.1.1' if not specified.
       #
       # ==== [1] Sale
       #
@@ -169,7 +175,7 @@ module ActiveMerchant #:nodoc:
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
 
-          requires!(options, :email, :ip, :order_id)
+          requires!(options, :email, :order_id)
           # Sale
           post = {
               'O' => ACTIONS[:sale],                  # Operation Code
@@ -181,7 +187,7 @@ module ActiveMerchant #:nodoc:
           add_billing_address_data(post, options)     # Billing Address Info
         else
           # Use Token Sale
-          requires!(options, :ip, :order_id)
+          requires!(options, :order_id)
           post = {
               'O' => ACTIONS[:use_token_sale],        # Operation Code
           }
@@ -206,8 +212,10 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # Additional, the following is optional.
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder. It will default to '1.1.1.1' if not specified.
       #
       # ==== [2] Authorise
       #
@@ -252,7 +260,7 @@ module ActiveMerchant #:nodoc:
         # Credit will be supplied in payment
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
           # Authorisation
-          requires!(options, :email, :ip, :order_id)
+          requires!(options, :email, :order_id)
           post = {
               'O' => ACTIONS[:authorisation],         # Operation Code
           }
@@ -263,7 +271,7 @@ module ActiveMerchant #:nodoc:
           add_billing_address_data(post, options)     # Billing Address Info
         else
           # Use Token - Auth
-          requires!(options, :ip, :order_id)
+          requires!(options, :order_id)
           post = {
               'O' => ACTIONS[:use_token_auth],     # Operation Code
           }
@@ -290,8 +298,10 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # Additional, the following is optional.
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder. It will default to '1.1.1.1' if not specified.
       #
       # ==== [3] Capture
       #
@@ -318,7 +328,7 @@ module ActiveMerchant #:nodoc:
 
         if authorization.has_key?(:token) && !authorization[:token].blank?
           # Use Token - Capture
-          requires!(options, :ip, :order_id)
+          requires!(options, :order_id)
           post = {
               'O' => ACTIONS[:use_token_capture],  # Operation Code
           }
@@ -329,7 +339,7 @@ module ActiveMerchant #:nodoc:
           add_previous_request_data(post, authorization)
         else
           # Capture
-          requires!(options, :ip, :order_id)
+          requires!(options, :order_id)
           post = {
               'O' => ACTIONS[:capture],               # Operation Code
           }
@@ -353,8 +363,10 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # Additional, the following is optional.
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder. It will default to '1.1.1.1' if not specified.
       #
       # ==== [7] Sale Void, [9] Capture Void, [5] Referral Credit
       #
@@ -378,7 +390,7 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:previous_request_id</tt> - This is the same value as supplied in +options[:order_id]+
       #
       def refund(money, authorization, options={})
-        requires!(options, :ip, :order_id, :refund_type)
+        requires!(options, :order_id, :refund_type)
         mapping = {
             capture:              ACTIONS[:capture_void],
             sale:                 ACTIONS[:sale_void],
@@ -412,8 +424,10 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #
+      # Additional, the following is optional.
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder. It will default to '1.1.1.1' if not specified.
       #
       # ==== [4] Authorisation Void
       #
@@ -440,7 +454,7 @@ module ActiveMerchant #:nodoc:
 
         if authorization.has_key?(:token) && !authorization[:token].blank?
           # Token Auth Void
-          requires!(options, :ip, :order_id)
+          requires!(options, :order_id)
           post = {
               'O' => ACTIONS[:token_auth_void],       # Operation Code
           }
@@ -450,7 +464,7 @@ module ActiveMerchant #:nodoc:
           add_previous_request_data(post, authorization)
         else
           # Authorisation Void
-          requires!(options, :ip, :order_id)
+          requires!(options, :order_id)
           post = {
               'O' => ACTIONS[:authorisation_void],    # Operation Code
           }
@@ -469,9 +483,11 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder, send '1.1.1.1' if not known
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
       #  * <tt>:email => +string+</tt> - Email address of the cardholder.
+      #
+      # Additional, the following is optional.
+      #  * <tt>:ip => +string+</tt> - IP Address of Cardholder. It will default to '1.1.1.1' if not specified.
       #
       #  +payment+ is a ActiveMerchant::Billing::CreditCard instance.
       # Specify the:
@@ -502,7 +518,7 @@ module ActiveMerchant #:nodoc:
       def store(payment, options = {})
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
-          requires!(options, :ip, :order_id, :email)
+          requires!(options, :order_id, :email)
           post = {
               'O' => ACTIONS[:create_token],       # Operation Code
           }
@@ -544,8 +560,10 @@ module ActiveMerchant #:nodoc:
         if options.has_key? :email
           post['c3'] = options[:email]              # Billing Email Address
         end
-        if options.has_key? :ip
+        if options.has_key? :ip && !options[:ip].nil?
           post['d1'] = options[:ip]                 # User's IP
+        else
+          post['d1'] = '1.1.1.1'
         end
       end
 

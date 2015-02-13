@@ -31,8 +31,7 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
     @gateway = CredoraxGateway.new(
         merchant_id: MERCHANT_ID,
         md5_cipher_key: MD5_CIPHER_KEY,
-        name_on_statement: NAME_ON_STATEMENT,
-        live_url: 'http://www.example.com'
+        name_on_statement: NAME_ON_STATEMENT
     )
 
     @credit_card = credit_card(CARD_NUMBER,
@@ -70,7 +69,6 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
   def test_successful_store
     @gateway.expects(:ssl_post).returns(successful_store_response)
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     @options[:store_verification_amount] = @amount
     response = @gateway.store(@credit_card, @options)
@@ -82,7 +80,6 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
   def test_failure_store
     @gateway.expects(:ssl_post).returns(failed_9_card_not_identified)
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     @options[:store_verification_amount] = @amount
     response = @gateway.store(@declined_card, @options)
@@ -97,14 +94,12 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         successful_purchase_response
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     @options[:store_verification_amount] = @amount
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1', # Fake IP for tests
         email: 'noone@example.com',
         description: 'Store Item123', # Limited to 13 characters
     }
@@ -122,13 +117,11 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         failed_purchase_response_invalid_token
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1', # Fake IP for tests
         email: 'noone@example.com',
         description: 'Store Item123', # Limited to 13 characters
     }
@@ -147,13 +140,11 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         successful_capture_response
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
     assert_success auth
@@ -162,6 +153,7 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         :response_id=>RESPONSE_ID,
         :transaction_id=>TRANSACTION_ID,
         :previous_request_id=>@order_id,
+        :response_reason_code=>"00",
         :token=>TOKEN
     }
     assert_equal expected, auth.authorization
@@ -170,7 +162,6 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     assert capture = @gateway.capture(nil, auth.authorization, @options)
     assert_success capture
@@ -179,6 +170,7 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         :response_id=>RESPONSE_ID,
         :transaction_id=>nil,
         :previous_request_id=>@options[:order_id],
+        :response_reason_code=>"00",
         :token=>TOKEN
     }
     assert_equal expected, capture.authorization
@@ -189,7 +181,6 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
   def test_failed_authorize
     @gateway.expects(:ssl_post).returns(failed_9_card_not_identified)
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     response = @gateway.authorize(@amount, BAD_TOKEN, @options)
     assert_failure response
@@ -206,19 +197,16 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         successful_partial_capture_response
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     assert capture = @gateway.capture(@amount-1000, auth.authorization, @options)
     assert_success capture
@@ -227,6 +215,7 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         :response_id=>RESPONSE_ID,
         :transaction_id=>nil,
         :previous_request_id=>@options[:order_id],
+        :response_reason_code=>"00",
         :token=>TOKEN
     }
     assert_equal expected, capture.authorization
@@ -243,20 +232,17 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         failed_capture_response_malformed_parameter
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
     assert_success auth
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     @bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
@@ -280,20 +266,17 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         failed_capture_response_bad_token
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
     assert_success auth
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     @bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
@@ -319,25 +302,21 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         successful_refund_response
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     capture = @gateway.capture(nil, auth.authorization, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1', # Fake IP for tests
         refund_type: :capture
     }
     assert refund = @gateway.refund(nil, capture.authorization, @options)
@@ -354,20 +333,17 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         successful_refund_response
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1', # Fake IP for tests
         description: 'Store Item123' # Limited to 13 characters
     }
     purchase = @gateway.purchase(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1', # Fake IP for tests
         refund_type: :sale
     }
     assert refund = @gateway.refund(nil, purchase.authorization, @options)
@@ -384,20 +360,17 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         failed_refund_response_malformed_parameter
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1', # Fake IP for tests
         description: 'Store Item123' # Limited to 13 characters
     }
     purchase = @gateway.purchase(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1', # Fake IP for tests
         refund_type: :sale
     }
     @bad_auth = {
@@ -422,19 +395,16 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         successful_void_response
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     assert void = @gateway.void(auth.authorization, @options)
     assert_success void
@@ -450,19 +420,16 @@ class CredoraxTokenVariantTest < Test::Unit::TestCase
         failed_void_response
     )
 
-    @options[:ip] = '1.1.1.1' # Fake IP for tests
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], @options)
 
     @options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        ip: '1.1.1.1' # Fake IP for tests
     }
     @bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
