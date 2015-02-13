@@ -169,7 +169,7 @@ module ActiveMerchant #:nodoc:
 
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
 
-          requires!(options, :email, :ip, :order_id, :description)
+          requires!(options, :email, :ip, :order_id)
           # Sale
           post = {
               'O' => ACTIONS[:sale],                  # Operation Code
@@ -181,7 +181,7 @@ module ActiveMerchant #:nodoc:
           add_billing_address_data(post, options)     # Billing Address Info
         else
           # Use Token Sale
-          requires!(options, :ip, :order_id, :description)
+          requires!(options, :ip, :order_id)
           post = {
               'O' => ACTIONS[:use_token_sale],        # Operation Code
           }
