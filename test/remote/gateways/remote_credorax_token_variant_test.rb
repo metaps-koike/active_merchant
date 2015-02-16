@@ -67,8 +67,23 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        email: 'noone@example.com',
         description: 'Store Item123', # Limited to 13 characters
+        d2: 'd2 purchase value'
+    }
+    response = @gateway.purchase(@amount, store.authorization[:token], options)
+    assert_success response
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+  end
+
+  def test_successful_purchase_transaction_scoped_dba
+
+    @options[:email] = 'noone@example.com'
+    store = @gateway.store(@credit_card, @options)
+
+    options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        description: 'Store Item123', # Limited to 13 characters
+        merchant: 'METAPS-CC', # Limited to 25 characters
         d2: 'd2 purchase value'
     }
     response = @gateway.purchase(@amount, store.authorization[:token], options)
@@ -83,7 +98,6 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        email: 'noone@example.com',
         description: 'Store Item123', # Limited to 13 characters
         d2: 'd2 purchase value'
     }

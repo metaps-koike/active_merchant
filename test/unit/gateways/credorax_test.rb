@@ -90,6 +90,31 @@ class CredoraxTest < Test::Unit::TestCase
     assert_equal 'Card+cannot+be+identified', response.message
   end
 
+  def test_failed_purchase_bad_description
+    @options[:email] = 'noone@example.com'
+    @options[:description] = 'Store Item1234'
+    assert_raise(ArgumentError){ @gateway.purchase(@amount, @credit_card, @options) }
+  end
+
+  def test_failed_purchase_bad_dba
+    @options[:email] = 'noone@example.com'
+    @options[:merchant] = '12345678901234567890123456'
+    assert_raise(ArgumentError){ @gateway.purchase(@amount, @credit_card, @options) }
+  end
+
+  def test_failed_purchase_bad_card_name
+    @options[:email] = 'noone@example.com'
+    credit_card = credit_card(CARD_NUMBER,
+                               {:brand => nil,
+                                :verification_value => '123',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                                :first_name => 'L',
+                                :last_name => 'L',
+                               })
+    assert_raise(ArgumentError){ @gateway.purchase(@amount, credit_card, @options) }
+  end
+
   def test_successful_authorize_and_capture
     @gateway.expects(:ssl_post).times(2).returns(
         successful_authorize_response
