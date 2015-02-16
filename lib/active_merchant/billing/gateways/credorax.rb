@@ -127,8 +127,9 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
-      #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
+      #  * <tt>:order_id    => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single merchant_id
       #  * <tt>:description => +string+</tt> The additional text that is shown on a cardholder's statement. Max length is 13 characters.
+      #  * <tt>:merchant    => +string+</tt> This is used together with description. It is optional, and overides 'name_on_statement' configuration.
       #
       # Additional, the following is optional.
       #  * <tt>:ip => +string+</tt> - IP Address of Cardholder. It will default to '1.1.1.1' if not specified.
@@ -601,9 +602,14 @@ module ActiveMerchant #:nodoc:
 
         if options.has_key? :description
           if options[:description].length > 13
-            raise ArgumentError, 'transaction description can has maximum length of 13 characters'
+            raise ArgumentError, 'transaction description has maximum length of 13 characters'
           end
-          post['i2'] = "#{@options[:name_on_statement]}*#{options[:description]}" # Transaction Description
+          dba_text = @options[:name_on_statement] # Gateway Scoped 'DBA' text
+          if options[:merchant].present?
+            raise(ArgumentError, 'transaction merchant has maximum length of 25 characters') if options[:merchant].length > 25
+            dba_text = options[:merchant] # Transaction Scoped 'DBA' text
+          end
+          post['i2'] = "#{dba_text}*#{options[:description]}" # Transaction Description
         end
 
         if options.has_key? :invoice
@@ -620,6 +626,7 @@ module ActiveMerchant #:nodoc:
           # BIN to Brand lookup
           post['b2'] = card_brand(payment.instance_variable_get('@brand'))
         end
+        raise(ArgumentError, 'billing contact name must be at least than 5 characters') unless payment.name.length >= 5
 
         post['b1'] = payment.number                 # Card Number
         post['b3'] = '%02d' % payment.month         # Card Expiration Month (MM) - ActiveMerchant Card stores as FixNum
