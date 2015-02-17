@@ -165,7 +165,7 @@ module ActiveMerchant #:nodoc:
       #
       # To use this operation, +payment+ should be a +String+ representation of a Credorax 'token' that is defined in the 'g1' parameter.
       #
-      # +options[:invoice]+ can be optionally specified, and should be used to store the Merchant Invoice ID.
+      # +options[:invoice]+ can be optionally specified, and should be used to store the Merchant Reference Number.
       #
       # Cardholder billing address details are not needed.
       #
@@ -203,6 +203,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)           # Item information
           add_customer_data(post, options)
         end
+        add_tracking(post, options)
         add_d2_certification(post, options)
         commit(post)
       end
@@ -250,7 +251,7 @@ module ActiveMerchant #:nodoc:
       #
       # To use this operation, +payment+ should be a +String+ representation of a Credorax 'token' that is defined in the 'g1' parameter.
       #
-      # +options[:invoice]+ can be optionally specified, and should be used to store the Merchant Invoice ID.
+      # +options[:invoice]+ can be optionally specified, and should be used to store the Merchant Reference Number.
       #
       # Cardholder billing address details are not needed.
       #
@@ -288,6 +289,7 @@ module ActiveMerchant #:nodoc:
           add_customer_data(post, options)
           add_billing_address_data(post, options)     # Billing Address Info
         end
+        add_tracking(post, options)
         add_d2_certification(post, options)
         commit(post)
       end
@@ -319,6 +321,7 @@ module ActiveMerchant #:nodoc:
       # ==== [13] Use Token - Capture
       #
       # To use this operation, +authorization+ should contain a populated +:token+ key/value pair.
+      # +options[:invoice]+ can be optionally specified, and should be used to store the Merchant Reference Number.
       #
       # Cardholder billing address details are not needed.
       #
@@ -355,6 +358,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)           # Item information - We allow partial amounts
           add_previous_request_data(post, authorization)
         end
+        add_tracking(post, options)
         add_d2_certification(post, options)
         commit(post)
       end
@@ -414,6 +418,7 @@ module ActiveMerchant #:nodoc:
         add_request_id(post, options)
         add_customer_data(post, options)
         add_previous_request_data(post, authorization)
+        add_tracking(post, options)
         add_d2_certification(post, options)
         commit(post)
       end
@@ -479,6 +484,7 @@ module ActiveMerchant #:nodoc:
           add_customer_data(post, options)
           add_previous_request_data(post, authorization)
         end
+        add_tracking(post, options)
         add_d2_certification(post, options)
         commit(post)
       end
@@ -538,6 +544,7 @@ module ActiveMerchant #:nodoc:
           raise ArgumentError, 'payment must be a Credit card (ActiveMerchant::Billing::CreditCard)'
         end
         add_d2_certification(post, options)
+        add_tracking(post, options)
         commit(post)
       end
 
@@ -618,10 +625,12 @@ module ActiveMerchant #:nodoc:
           post['i2'] = "#{dba_text}*#{options[:description]}" # Transaction Description
         end
 
-        if options.has_key? :invoice
-          post['a8'] = options[:invoice] # Merchant invoice ID
-        end
+      end
 
+      def add_tracking(post, options)
+        if options.has_key? :invoice
+          post['h9'] = options[:invoice] # Merchant Reference Number
+        end
       end
 
       def add_payment(post, payment)
