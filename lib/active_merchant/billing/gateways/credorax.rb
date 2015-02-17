@@ -82,6 +82,12 @@ module ActiveMerchant #:nodoc:
       self.default_currency = 'EUR'
       self.supported_cardtypes = [:visa, :master]
 
+      # This class expects all amounts to be sent as cents (or equivalent, eg. US cents, EUR cents, GBP pence)
+      # OR the actual amount when the currency does not have a sub-unit (eg. JP Yen)
+      # So, it would expect $10.29 to be sent as 1029
+      # and Y2104 as 2104
+      self.money_format = :cents
+
       self.homepage_url = 'http://epower.credorax.com'
       self.display_name = 'Credorax'
 
