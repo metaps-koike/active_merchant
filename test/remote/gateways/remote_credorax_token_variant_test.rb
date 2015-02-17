@@ -39,7 +39,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
         billing_address: @billing_address,
         description: 'Store Item123', # Limited to 13 characters
         invoice: 'merchant invoice',
-        d2: 'd2 test value'
+        d2: 'd2 test value',
+        invoice: 'tracking_id'
     }
   end
 
@@ -68,7 +69,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         description: 'Store Item123', # Limited to 13 characters
-        d2: 'd2 purchase value'
+        d2: 'd2 purchase value',
+        invoice: 'tracking_id'
     }
     response = @gateway.purchase(@amount, store.authorization[:token], options)
     assert_success response
@@ -84,7 +86,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         description: 'Store Item123', # Limited to 13 characters
         merchant: 'METAPS-CC', # Limited to 25 characters
-        d2: 'd2 purchase value'
+        d2: 'd2 purchase value',
+        invoice: 'tracking_id'
     }
     response = @gateway.purchase(@amount, store.authorization[:token], options)
     assert_success response
@@ -99,7 +102,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         description: 'Store Item123', # Limited to 13 characters
-        d2: 'd2 purchase value'
+        d2: 'd2 purchase value',
+        invoice: 'tracking_id'
     }
 
     response = @gateway.purchase(@amount, '111111111', options)
@@ -123,7 +127,8 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 capture value'
+        d2: 'd2 capture value',
+        invoice: 'tracking_id'
     }
     assert capture = @gateway.capture(nil, auth.authorization, options)
     assert_success capture
@@ -143,13 +148,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 auth value'
+        d2: 'd2 auth value',
+        invoice: 'tracking_id'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 capture value'
+        d2: 'd2 capture value',
+        invoice: 'tracking_id'
     }
     assert capture = @gateway.capture(@amount-1000, auth.authorization, options)
     assert_success capture
@@ -162,13 +169,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 auth value'
+        d2: 'd2 auth value',
+        invoice: 'tracking_id'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 capture value'
+        d2: 'd2 capture value',
+        invoice: 'tracking_id'
     }
     bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
@@ -188,20 +197,23 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 auth value'
+        d2: 'd2 auth value',
+        invoice: 'tracking_id'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 capture value'
+        d2: 'd2 capture value',
+        invoice: 'tracking_id'
     }
     capture = @gateway.capture(nil, auth.authorization, options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         d2: 'd2 refund value',
-        refund_type: :capture
+        refund_type: :capture,
+        invoice: 'tracking_id'
     }
     assert refund = @gateway.refund(nil, capture.authorization, options)
     assert_success refund
@@ -215,14 +227,16 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         description: 'Store Item123', # Limited to 13 characters
-        d2: 'd2 purchase value'
+        d2: 'd2 purchase value',
+        invoice: 'tracking_id'
     }
     purchase = @gateway.purchase(@amount, store.authorization[:token], options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         d2: 'd2 refund value',
-        refund_type: :sale
+        refund_type: :sale,
+        invoice: 'tracking_id'
     }
     assert refund = @gateway.refund(nil, purchase.authorization, options)
     assert_success refund
@@ -235,20 +249,23 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 auth value'
+        d2: 'd2 auth value',
+        invoice: 'tracking_id'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 capture value'
+        d2: 'd2 capture value',
+        invoice: 'tracking_id'
     }
     capture = @gateway.capture(nil, auth.authorization, options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         d2: 'd2 refund value',
-        refund_type: :capture
+        refund_type: :capture,
+        invoice: 'tracking_id'
     }
     bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
@@ -267,13 +284,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 auth value'
+        d2: 'd2 auth value',
+        invoice: 'tracking_id'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 void value'
+        d2: 'd2 void value',
+        invoice: 'tracking_id'
     }
     assert void = @gateway.void(auth.authorization, options)
     assert_success void
@@ -286,13 +305,15 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 auth value'
+        d2: 'd2 auth value',
+        invoice: 'tracking_id'
     }
     auth = @gateway.authorize(@amount, store.authorization[:token], options)
 
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
-        d2: 'd2 void value'
+        d2: 'd2 void value',
+        invoice: 'tracking_id'
     }
     bad_auth = {
         authorization_code: auth.authorization[:authorization_code],
