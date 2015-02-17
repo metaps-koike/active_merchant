@@ -82,6 +82,12 @@ module ActiveMerchant #:nodoc:
       self.default_currency = 'EUR'
       self.supported_cardtypes = [:visa, :master]
 
+      # This class expects all amounts to be sent as cents (or equivalent, eg. US cents, EUR cents, GBP pence)
+      # OR the actual amount when the currency does not have a sub-unit (eg. JP Yen)
+      # So, it would expect $10.29 to be sent as 1029
+      # and Y2104 as 2104
+      self.money_format = :cents
+
       self.homepage_url = 'http://epower.credorax.com'
       self.display_name = 'Credorax'
 
@@ -524,7 +530,7 @@ module ActiveMerchant #:nodoc:
               'O' => ACTIONS[:create_token],       # Operation Code
           }
           add_request_id(post, options)
-          add_invoice(post, 100000, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response)
+          add_invoice(post, 10, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response for example)
           add_payment(post, payment)
           add_customer_data(post, options)
           add_billing_address_data(post, options)
