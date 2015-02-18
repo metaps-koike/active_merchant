@@ -579,7 +579,8 @@ module ActiveMerchant #:nodoc:
         if options.has_key? :email
           post['c3'] = options[:email]              # Billing Email Address
         end
-        if options.has_key? :ip && !options[:ip].nil?
+
+        if options[:ip].present?
           post['d1'] = options[:ip]                 # User's IP
         else
           post['d1'] = '1.1.1.1'
