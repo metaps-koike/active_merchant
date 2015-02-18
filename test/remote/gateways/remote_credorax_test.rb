@@ -164,7 +164,7 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     options = {
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         d2: 'd2 refund value',
-        refund_type: :post_clearing_credit,
+        refund_type: :basic_post_clearing_credit,
         invoice: 'tracking_id'
     }
     assert refund = @gateway.refund(nil, purchase.authorization, options)

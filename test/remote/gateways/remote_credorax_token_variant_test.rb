@@ -243,6 +243,29 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     assert_equal 'Transaction+has+been+executed+successfully.', refund.message
   end
 
+  def test_successful_refund_from_sale_post_clearing
+    @options[:email] = 'noone@example.com'
+    store = @gateway.store(@credit_card, @options)
+
+    options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        description: 'Store Item123', # Limited to 13 characters
+        d2: 'd2 purchase value',
+        invoice: 'tracking_id'
+    }
+    purchase = @gateway.purchase(@amount, store.authorization[:token], options)
+
+    options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        d2: 'd2 refund value',
+        refund_type: :post_clearing_credit,
+        invoice: 'tracking_id'
+    }
+    assert refund = @gateway.refund(nil, purchase.authorization, options)
+    assert_success refund
+    assert_equal 'Transaction+has+been+executed+successfully.', refund.message
+  end
+
   def test_failed_refund
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
