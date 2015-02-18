@@ -541,7 +541,7 @@ module ActiveMerchant #:nodoc:
               'O' => ACTIONS[:create_token],       # Operation Code
           }
           add_request_id(post, options)
-          add_invoice(post, 10, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response for example)
+          add_invoice(post, 1000, options) # Hard coded amount value, as it gets ignore by Credorax (it always returns a4=5 (500) in response for example)
           add_payment(post, payment)
           add_customer_data(post, options)
           add_billing_address_data(post, options)
@@ -579,7 +579,8 @@ module ActiveMerchant #:nodoc:
         if options.has_key? :email
           post['c3'] = options[:email]              # Billing Email Address
         end
-        if options.has_key? :ip && !options[:ip].nil?
+
+        if options[:ip].present?
           post['d1'] = options[:ip]                 # User's IP
         else
           post['d1'] = '1.1.1.1'
