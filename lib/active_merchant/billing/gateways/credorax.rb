@@ -385,16 +385,17 @@ module ActiveMerchant #:nodoc:
       #
       # Also note, that due to Credorax's transaction states it is necessary to call the correct 'refund' operation
       # This requires the use of a non-standard +option+, with a key of +:refund_type+
-      #
-      #  * <tt>:capture               </tt> If the transaction was created via [3] Capture AND was done so after the latest 'clearing' date (00:00UTC+02)
-      #  * <tt>:sale                  </tt> If the transaction was created via [1] Sale AND was done so after the latest 'clearing' date (00:00UTC+02)
-      #  * <tt>:post_clearing_credit  </tt> If the Sale/Capture time was before lastest 'clearing date' (so, has now been passed clearing)
+      #  * <tt>:basic_post_clearing_credit  </tt> If the Sale/Capture time was before latest 'clearing date' (so, has now been passed clearing) (Basic Operation Cancel)
+      #  * <tt>:capture                     </tt> If the transaction was created via [3] Capture AND was done so after the latest 'clearing' date (00:00UTC+01)
+      #  * <tt>:sale                        </tt> If the transaction was created via [1] Sale AND was done so after the latest 'clearing' date (00:00UTC+01)
+      #  * <tt>:post_clearing_credit        </tt> If the Sale/Capture time was before latest 'clearing date' (so, has now been passed clearing) (Token Operation Cancel)
       #
       # If this parameter is not specified, then it will default to :post_clearing_credit
       #
       # === Response
       #
       # response[:authorization] contains a hash with the following key/value pairs
+      #  * <tt>:token</tt> - This is necessary when using +options[:refund_type]+ = +:post_clearing_credit+
       #  * <tt>:authorization_code</tt> - This will be set to 0
       #  * <tt>:response_id</tt>
       #  * <tt>:transaction_id</tt> - This will be set to nil
@@ -403,18 +404,22 @@ module ActiveMerchant #:nodoc:
       def refund(money, authorization, options={})
         requires!(options, :order_id, :refund_type)
         mapping = {
-            capture:              ACTIONS[:capture_void],
-            sale:                 ACTIONS[:sale_void],
-            post_clearing_credit: ACTIONS[:referral_credit]
+            basic_post_clearing_credit: ACTIONS[:referral_credit],
+            capture:                    ACTIONS[:capture_void],
+            sale:                       ACTIONS[:sale_void],
+            post_clearing_credit:       ACTIONS[:token_referral_credit]
         }
         if options.has_key?(:refund_type) && !options[:refund_type].blank?
           opcode = mapping[options[:refund_type]]
         else
-          opcode = ACTIONS[:referral_credit]
+          opcode = ACTIONS[:token_referral_credit]
         end
         post = {
             'O' => opcode,              # Operation Code
         }
+        if opcode == ACTIONS[:token_referral_credit]
+          add_token(post, authorization[:token])
+        end
         add_request_id(post, options)
         add_customer_data(post, options)
         add_previous_request_data(post, authorization)
