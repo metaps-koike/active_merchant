@@ -268,7 +268,7 @@ class RemoteCredoraxCertificationTest < Test::Unit::TestCase
         order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
         ip: '1.1.1.1',
         d2: '1694BEF',
-        refund_type: :post_clearing_credit
+        refund_type: :basic_post_clearing_credit
     }
     assert refund = @gateway.refund(nil, capture.authorization, options)
     assert_success refund
@@ -480,6 +480,54 @@ class RemoteCredoraxCertificationTest < Test::Unit::TestCase
     assert_success void
     assert_equal 'Transaction+has+been+executed+successfully.', void.message
 
+  end
+
+  def test_token_referral_credit
+    card = credit_card('4929600002000005',
+                       {:brand => '',
+                        :verification_value => '555',
+                        :month => 6,
+                        :year => 2018,
+                        :first_name => 'John',
+                        :last_name => 'Tailor',
+                       })
+    options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        description: 'Store Item123',
+        ip: '1.1.1.1',
+        email: 'j.tailor@test.com',
+        d2: '1694BE6'
+    }
+    store = @gateway.store(card, options)
+    assert_success store
+    assert_equal 'Transaction+has+been+executed+successfully.', store.message
+        options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        description: 'Store Item123',
+        ip: '1.1.1.1',
+        d2: '1694BE8'
+    }
+    auth = @gateway.authorize(2000, store.authorization[:token], options)
+    assert_success auth
+    assert_equal 'Transaction+has+been+executed+successfully.', auth.message
+        options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+        ip: '1.1.1.1',
+        d2: '1694BE9'
+    }
+    assert capture = @gateway.capture(nil, auth.authorization, options)
+    assert_success capture
+    assert_equal 'Transaction+has+been+executed+successfully.', capture.message
+
+    options = {
+       order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S"),
+       ip: '1.1.1.1',
+       d2: '16D23D3',
+       refund_type: :post_clearing_credit
+    }
+    assert refund = @gateway.refund(nil, capture.authorization, options)
+    assert_success refund
+    assert_equal 'Transaction+has+been+executed+successfully.', refund.message
   end
 
 end
