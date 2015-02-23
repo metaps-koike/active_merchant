@@ -21,6 +21,8 @@ class EcontextTest < Test::Unit::TestCase
         live_url: LIVE_URL
     )
 
+    # When connecting to Yen Merchant this is 10000 Yen
+    # When connecting to USD Merchant this is 100.00 Dollars
     @amount = 10000
 
     @credit_card = credit_card('4980111111111111',

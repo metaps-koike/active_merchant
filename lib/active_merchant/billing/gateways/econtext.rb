@@ -84,7 +84,7 @@ module ActiveMerchant #:nodoc:
 
       self.supported_countries = ['JP']             # Japan only
       self.default_currency = 'JPY'                 # Japan only
-      self.money_format = :dollars                  # Yen does not have a 'minor part'
+      self.money_format = :cents                    # ECONTEXT 'ordAmount' only accepts 'integer values'
       self.supported_cardtypes = [:american_express, :jcb, :diners_club]
 
       self.ssl_version = :SSLv3                     # Need to enforce this protocol
@@ -114,7 +114,11 @@ module ActiveMerchant #:nodoc:
       # ```
       #
       def initialize(options={})
-        requires!(options, :shop_id, :chk_code, :live_url)
+        requires!(options, :shop_id, :chk_code)
+        if options.has_key? :test && !options[:test].nil? && !options[:test]
+          # Not test mode, also require the live_url
+          requires!(options, :live_url)
+        end
         super
       end
 
@@ -294,7 +298,7 @@ module ActiveMerchant #:nodoc:
               'paymtCode' => authorization[:previous_paymt_code],
               'fncCode' => FNC_CODES[:change_charge_amount],
               'orderID' => authorization[:previous_order_id],           # 6-47 characters, unique per shop_id
-              'ordAmount' => localized_amount(money, 'JPY').to_i.to_s,  # 1-999999 single-byte characters
+              'ordAmount' => money.to_i.to_s,                           # 1-999999 single-byte characters
           }
           commit(post, authorization[:previous_paymt_code], authorization[:previous_order_id])
         end
@@ -368,9 +372,9 @@ module ActiveMerchant #:nodoc:
               'paymtCode' => PAYMENT_CODE[:card_membership],
               'fncCode' => FNC_CODES[:member_serv_register_card],
               'cduserID' => options[:customer],
-              'retokURL' => 'http://www.example.com', # TODO Dummy, not going to be used?
-              'retngURL' => 'http://www.example.com', # TODO Dummy, not going to be used?
-              'ordAmount' => localized_amount(100, 'JPY').to_i.to_s, # TODO - Dummy value here OK
+              'retokURL' => 'http://www.example.com',           # Dummy value can be used here
+              'retngURL' => 'http://www.example.com',           # Dummy value can be used here
+              'ordAmount' => '5',                               # Dummy value can be used here
               'ordAmountTax' => '0',
           }
           add_econ_payment_page_settings(post, options)
@@ -421,14 +425,14 @@ module ActiveMerchant #:nodoc:
             'paymtCode' => pCode,
             'fncCode' => fCode,
             'orderID' => authorization[:previous_order_id],           # 6-47 characters, unique per shop_id
-            'ordAmount' => localized_amount(money, 'JPY').to_i.to_s,  # 1-999999 single-byte characters
+            'ordAmount' => money.to_i.to_s,                           # 1-999999 single-byte characters
             'shipDate' => Time.now.getutc.strftime("%Y/%m/%d")        # This is the capture date
         }
       end
 
       def add_invoice(post, money, options)
         post['itemName'] = options[:description]                      # single-byte 22 characters
-        post['ordAmount'] = localized_amount(money, 'JPY').to_i.to_s  # 1-999999 single-byte characters
+        post['ordAmount'] = money.to_i.to_s                           # 1-999999 single-byte characters
         post['ordAmountTax'] = '0'
         post['commission'] = '0'
       end

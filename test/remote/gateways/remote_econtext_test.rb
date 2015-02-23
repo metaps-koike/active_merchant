@@ -10,14 +10,9 @@ class RemoteEcontextTest < Test::Unit::TestCase
   def setup
     @gateway = EcontextGateway.new(fixtures(:econtext))
 
+    # When connecting to Yen Merchant this is 10000 Yen
+    # When connecting to USD Merchant this is 100.00 Dollars
     @amount = 10000
-    # TODO Why does this fail, this should be a CVV2 checked card
-    # @credit_card = credit_card('4123450131003312',
-    #                            {:brand => 'visa',
-    #                             :verification_value => '815',
-    #                             :month => 3,
-    #                             :year => (Time.now.year + 1),
-    #                            })
 
     @credit_card = credit_card('4980111111111111',
                                {:brand => 'visa',
