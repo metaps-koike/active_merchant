@@ -164,6 +164,13 @@ data_cash:
 direc_pay:
   login: 200904281000001
 
+# Replace these credentials, see comment at top of file
+econtext:
+  shop_id: 'merchant_code' # The shop id (also known as Site Code / サイトコード), supplied by ECONTEXT
+  chk_code: 'chkcode'      # Check code (サイトチェックコード), supplied by ECONTEXT
+  live_url: 'live_url'     # The production URL
+
+
 efsnet:
   login: X
   password: Y
