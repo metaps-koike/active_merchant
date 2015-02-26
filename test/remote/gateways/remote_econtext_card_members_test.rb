@@ -119,6 +119,30 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_equal '正常', capture.message
   end
 
+  def test_successful_authorize_and_capture_custom_shipdate
+    cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: cust,
+    }
+    response = @gateway.store(@credit_card, options)
+    assert_success response
+
+    options = {
+        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+    }
+    auth = @gateway.authorize(@amount, cust, options)
+    assert_success auth
+    assert_equal '正常', auth.message
+
+    options = {
+        customer: cust,
+        ship_date: Time.now.getutc
+    }
+    assert capture = @gateway.capture(@amount, auth.authorization, options)
+    assert_success capture
+    assert_equal '正常', capture.message
+  end
+
   def test_failed_authorize_invalid_member
     cust = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
