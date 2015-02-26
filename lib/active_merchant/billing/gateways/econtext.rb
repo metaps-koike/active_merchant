@@ -222,6 +222,9 @@ module ActiveMerchant #:nodoc:
       #
       # === Options
       #
+      # * <tt>:ship_date => +Time+</tt> Non-standard option that can be used to configure the 'shipDate' parameter
+      # If not specified, this will default to current date
+      #
       # ==== Basic
       #
       # To use this operation, +options+ should NOT contain a populated +:customer+ key/value pair. It is a single-byte alphanumeric within 36 characters
@@ -250,12 +253,12 @@ module ActiveMerchant #:nodoc:
         if options.has_key?(:customer) && !options[:customer].nil?
           # Membership
           pCode = PAYMENT_CODE[:card_membership]
-          post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization)
+          post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization, options)
           post['cduserID'] = options[:customer]
         else
           # Non-membership
           pCode = PAYMENT_CODE[:card_non_membership]
-          post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization)
+          post = build_capture_post(pCode, FNC_CODES[:capture], money, authorization, options)
         end
         commit(post, pCode, options[:order_id])
       end
@@ -374,7 +377,7 @@ module ActiveMerchant #:nodoc:
               'cduserID' => options[:customer],
               'retokURL' => 'http://www.example.com',           # Dummy value can be used here
               'retngURL' => 'http://www.example.com',           # Dummy value can be used here
-              'ordAmount' => '5',                               # Dummy value can be used here
+              'ordAmount' => '0',                               # Dummy value can be used here
               'ordAmountTax' => '0',
           }
           add_econ_payment_page_settings(post, options)
@@ -420,13 +423,18 @@ module ActiveMerchant #:nodoc:
         commit(post, pCode, options[:order_id])
       end
 
-      def build_capture_post(pCode, fCode, money, authorization={} )
+      def build_capture_post(pCode, fCode, money, authorization={}, options={} )
+        if options.has_key?(:ship_date) && !options[:ship_date].nil?
+          ship_date = options[:ship_date].strftime("%Y/%m/%d")
+        else
+          ship_date = Time.now.getutc.strftime("%Y/%m/%d")            # This is the capture date
+        end
         {
             'paymtCode' => pCode,
             'fncCode' => fCode,
             'orderID' => authorization[:previous_order_id],           # 6-47 characters, unique per shop_id
             'ordAmount' => money.to_i.to_s,                           # 1-999999 single-byte characters
-            'shipDate' => Time.now.getutc.strftime("%Y/%m/%d")        # This is the capture date
+            'shipDate' => ship_date
         }
       end
 
