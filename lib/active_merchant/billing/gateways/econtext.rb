@@ -301,7 +301,7 @@ module ActiveMerchant #:nodoc:
               'paymtCode' => authorization[:previous_paymt_code],
               'fncCode' => FNC_CODES[:change_charge_amount],
               'orderID' => authorization[:previous_order_id],           # 6-47 characters, unique per shop_id
-              'ordAmount' => money.to_i.to_s,                           # 1-999999 single-byte characters
+              'ordAmount' => money.to_i.to_s,                           # 1-999999 single-byte characters (this limit may be higher as per your merchant setup with Econtext)
           }
           commit(post, authorization[:previous_paymt_code], authorization[:previous_order_id])
         end
@@ -433,14 +433,14 @@ module ActiveMerchant #:nodoc:
             'paymtCode' => pCode,
             'fncCode' => fCode,
             'orderID' => authorization[:previous_order_id],           # 6-47 characters, unique per shop_id
-            'ordAmount' => money.to_i.to_s,                           # 1-999999 single-byte characters
+            'ordAmount' => money.to_i.to_s,                           # 1-999999 single-byte characters (this limit may be higher as per your merchant setup with Econtext)
             'shipDate' => ship_date
         }
       end
 
       def add_invoice(post, money, options)
         post['itemName'] = options[:description]                      # single-byte 22 characters
-        post['ordAmount'] = money.to_i.to_s                           # 1-999999 single-byte characters
+        post['ordAmount'] = money.to_i.to_s                           # 1-999999 single-byte characters (this limit may be higher as per your merchant setup with Econtext)
         post['ordAmountTax'] = '0'
         post['commission'] = '0'
       end
