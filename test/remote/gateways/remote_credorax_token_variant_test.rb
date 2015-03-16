@@ -19,10 +19,16 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
                                 :month => 3,
                                 :year => (Time.now.year + 1),
                                })
-    @declined_card = credit_card('4000300011112220',
+    @declined_card = credit_card('400030001111222',
                                  {:brand => nil,
                                   :verification_value => '123'
                                  })
+    @bad_cvv_card = credit_card('400030001111222',
+                                {:brand => nil,
+                                 :verification_value => '1234',
+                                 :month => 3,
+                                 :year => (Time.now.year + 1),
+                                })
 
     @amount = 10000 # This is 'cents', so 100 Euros
 
@@ -59,6 +65,12 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     response = @gateway.store(@declined_card, @options)
     assert_failure response
     assert_equal 'Card+cannot+be+identified', response.message
+  end
+
+  def test_failure_due_to_bad_cvv
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = @amount
+    assert_raise(ArgumentError){ @gateway.store(@bad_cvv_card, @options) }
   end
 
   def test_successful_purchase
