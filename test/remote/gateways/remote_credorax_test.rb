@@ -16,7 +16,7 @@ class RemoteCredoraxTest < Test::Unit::TestCase
                                 :month => 3,
                                 :year => (Time.now.year + 1),
                                })
-    @declined_card = credit_card('4000300011112220',
+    @declined_card = credit_card('400030001111222',
                                  {:brand => nil,
                                   :verification_value => '123'
                                  })
