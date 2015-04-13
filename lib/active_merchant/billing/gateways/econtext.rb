@@ -87,7 +87,7 @@ module ActiveMerchant #:nodoc:
       self.money_format = :cents                    # ECONTEXT 'ordAmount' only accepts 'integer values'
       self.supported_cardtypes = [:american_express, :jcb, :diners_club]
 
-      self.ssl_version = :SSLv3                     # Need to enforce this protocol
+      #self.ssl_version = :SSLv3                     # Need to enforce this protocol
 
       self.homepage_url = 'http://www.econtext.jp'  # Japanese Language
       self.display_name = 'ECONTEXT'
@@ -480,7 +480,16 @@ module ActiveMerchant #:nodoc:
       end
 
       def commit(parameters, paymt_code, order_id)
+
+        puts ''
+        puts ''
+        puts 'TESTING'
+
         url = (test? ? test_url : @options[:live_url])
+
+        puts "URL = #{url}"
+        puts ''
+        puts ''
 
         headers = {
             'Content-Type' => 'application/x-www-form-urlencoded;charset=shift_jis'
