@@ -481,15 +481,7 @@ module ActiveMerchant #:nodoc:
 
       def commit(parameters, paymt_code, order_id)
 
-        puts ''
-        puts ''
-        puts 'TESTING'
-
         url = (test? ? test_url : @options[:live_url])
-
-        puts "URL = #{url}"
-        puts ''
-        puts ''
 
         headers = {
             'Content-Type' => 'application/x-www-form-urlencoded;charset=shift_jis'
