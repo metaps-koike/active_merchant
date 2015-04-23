@@ -134,6 +134,7 @@ module ActiveMerchant #:nodoc:
       # === Options
       #
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single shop_id
+      #  * <tt>:session_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique session_id, within the scope of a single shop_id
       #
       # ==== Basic
       #
@@ -178,6 +179,7 @@ module ActiveMerchant #:nodoc:
       # === Options
       #
       #  * <tt>:order_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique order_id, within the scope of a single shop_id
+      #  * <tt>:session_id => +string+</tt> Unique id. Every call to this gateway MUST have a unique session_id, within the scope of a single shop_id
       #
       # ==== Basic
       #
@@ -397,7 +399,7 @@ module ActiveMerchant #:nodoc:
       def purchase_or_auth(action, money, payment, options={})
         pCode = ''
         if payment.is_a?(ActiveMerchant::Billing::CreditCard)
-          requires!(options, :order_id, :description)
+          requires!(options, :order_id, :session_id, :description)
           pCode = PAYMENT_CODE[:card_non_membership]
           # Non-membership
           post = {
@@ -408,7 +410,7 @@ module ActiveMerchant #:nodoc:
           add_payment(post, payment)
         else
           # Membership
-          requires!(options, :order_id)
+          requires!(options, :order_id, :session_id)
           pCode = PAYMENT_CODE[:card_membership]
           post = {
               'cduserID' => payment,                                  #single-byte alphanumeric within 36 characters
@@ -419,7 +421,7 @@ module ActiveMerchant #:nodoc:
         post['paymtCode'] = pCode
         post['fncCode'] = action
         post['orderID'] = options[:order_id]                          # 6-47 characters, unique per shop_id
-        post['sessionID'] = options[:order_id]
+        post['sessionID'] = options[:session_id]
         commit(post, pCode, options[:order_id])
       end
 

@@ -35,7 +35,8 @@ class RemoteEcontextTest < Test::Unit::TestCase
                                        })
 
     @options = {
-        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+        order_id: Time.now.getutc.strftime("%L%S%M%H%d%m%Y"),
+        session_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
         description: 'dummy'
     }
   end
@@ -49,9 +50,11 @@ class RemoteEcontextTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    stamp = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: stamp,
+        session_id: session,
         description: "#{stamp}Sale"
     }
     response = @gateway.purchase(@amount, @credit_card, options)
@@ -76,9 +79,11 @@ class RemoteEcontextTest < Test::Unit::TestCase
   end
 
   def test_successful_authorize_and_capture
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    stamp = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: stamp,
+        session_id: session,
         description: "#{stamp}Auth"
     }
     auth = @gateway.authorize(@amount, @credit_card, options)
@@ -114,9 +119,11 @@ class RemoteEcontextTest < Test::Unit::TestCase
   end
 
   def test_successful_refund_from_a_purchase
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    stamp = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: stamp,
+        session_id: session,
         description: "#{stamp}Sale"
     }
     purchase = @gateway.purchase(@amount, @credit_card, options)
@@ -127,9 +134,11 @@ class RemoteEcontextTest < Test::Unit::TestCase
   end
 
   def test_successful_refund_from_a_auth_capture
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    stamp = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: stamp,
+        session_id: session,
         description: "#{stamp}Auth"
     }
     auth = @gateway.authorize(@amount, @credit_card, options)
@@ -145,9 +154,11 @@ class RemoteEcontextTest < Test::Unit::TestCase
 
 
   def test_partial_refund
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    stamp = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: stamp,
+        session_id: session,
         description: "#{stamp}Sale"
     }
     purchase = @gateway.purchase(@amount, @credit_card, options)
@@ -172,9 +183,11 @@ class RemoteEcontextTest < Test::Unit::TestCase
   end
 
   def test_successful_void
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    stamp = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: stamp,
+        session_id: session,
         description: "#{stamp}Auth"
     }
     auth = @gateway.authorize(@amount, @credit_card, options)
@@ -210,5 +223,5 @@ class RemoteEcontextTest < Test::Unit::TestCase
     response = gateway.purchase(@amount, @credit_card, @options)
     assert_failure response
   end
-  
+
 end

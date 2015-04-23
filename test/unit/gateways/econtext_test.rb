@@ -46,8 +46,9 @@ class EcontextTest < Test::Unit::TestCase
                                        })
 
     @options = {
-        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
-        description: 'dummy'
+      order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+      session_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+      description: 'dummy'
     }
   end
 
@@ -62,10 +63,12 @@ class EcontextTest < Test::Unit::TestCase
   def test_successful_purchase
     @gateway.expects(:ssl_post).returns(successful_purchase_response)
 
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: stamp,
-        description: "#{stamp}Sale"
+        order_id: order,
+        session_id: session,
+        description: "#{order}Sale"
     }
     response = @gateway.purchase(@amount, @credit_card, options)
     assert_success response
@@ -99,10 +102,12 @@ class EcontextTest < Test::Unit::TestCase
       successful_capture_response
     )
 
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: stamp,
-        description: "#{stamp}Auth"
+        order_id: order,
+        session_id: session,
+        description: "#{order}Sale"
     }
     auth = @gateway.authorize(@amount, @credit_card, options)
     assert_success auth
@@ -147,10 +152,12 @@ class EcontextTest < Test::Unit::TestCase
         successful_refund_response
     )
 
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: stamp,
-        description: "#{stamp}Sale"
+        order_id: order,
+        session_id: session,
+        description: "#{order}Sale"
     }
     purchase = @gateway.purchase(@amount, @credit_card, options)
     assert_success purchase
@@ -168,10 +175,12 @@ class EcontextTest < Test::Unit::TestCase
         successful_refund_response
     )
 
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: stamp,
-        description: "#{stamp}Auth"
+        order_id: order,
+        session_id: session,
+        description: "#{order}Auth"
     }
     auth = @gateway.authorize(@amount, @credit_card, options)
     assert_success auth
@@ -192,10 +201,12 @@ class EcontextTest < Test::Unit::TestCase
         successful_refund_response
     )
 
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: stamp,
-        description: "#{stamp}Sale"
+        order_id: order,
+        session_id: session,
+        description: "#{order}Sale"
     }
     purchase = @gateway.purchase(@amount, @credit_card, options)
     assert_success purchase
@@ -229,10 +240,12 @@ class EcontextTest < Test::Unit::TestCase
         successful_void_response
     )
 
-    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: stamp,
-        description: "#{stamp}Auth"
+        order_id: order,
+        session_id: session,
+        description: "#{order}Auth"
     }
     auth = @gateway.authorize(@amount, @credit_card, options)
     assert_success auth
