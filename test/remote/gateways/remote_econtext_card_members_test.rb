@@ -68,9 +68,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: order,
+        session_id: session,
     }
     response = @gateway.purchase(@amount, cust, options)
     assert_success response
@@ -85,9 +87,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: order,
+        session_id: session,
     }
     response = @gateway.purchase(@amount, '111', options)
     assert_failure response
@@ -105,7 +109,8 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_success response
 
     options = {
-        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+        order_id: Time.now.getutc.strftime("%L%S%M%H%d%m%Y"),
+        session_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
@@ -128,7 +133,8 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     assert_success response
 
     options = {
-        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+        order_id: Time.now.getutc.strftime("%L%S%M%H%d%m%Y"),
+        session_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
@@ -151,9 +157,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     @options = {
         order_id: order,
+        session_id: session,
     }
     response = @gateway.authorize(@amount, '111', @options)
     assert_failure response
@@ -174,8 +182,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
-        order_id: Time.now.getutc.strftime("%Y%m%d%H%M%S%L"),
+        order_id: order,
+        session_id: session,
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
@@ -205,9 +216,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: order,
+        session_id: session,
     }
     purchase = @gateway.purchase(@amount, cust, options)
     assert_success purchase
@@ -224,9 +237,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: order,
+        session_id: session,
     }
     purchase = @gateway.purchase(@amount, cust, options)
     assert_success purchase
@@ -244,9 +259,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: order,
+        session_id: session,
     }
     purchase = @gateway.purchase(@amount, cust, options)
     assert_success purchase
@@ -273,9 +290,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: order,
+        session_id: session,
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
@@ -292,9 +311,11 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
     response = @gateway.store(@credit_card, options)
     assert_success response
 
-    order = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
         order_id: order,
+        session_id: session,
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
