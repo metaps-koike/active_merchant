@@ -48,6 +48,24 @@ class RemoteEcontextCardMembersTest < Test::Unit::TestCase
 
   end
 
+  def test_successful_store_099_cvv
+    stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        customer: stamp,
+    }
+    alt_credit_card = credit_card('4980111111111111',
+                               {:brand => 'visa',
+                                :verification_value => '099',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                               })
+    response = @gateway.store(alt_credit_card, options)
+    assert_success response
+    assert_equal '正常', response.message
+    assert_equal '2S63046', response.authorization[:card_aquirer_code]
+
+  end
+
   def test_failure_store
     stamp = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
     options = {
