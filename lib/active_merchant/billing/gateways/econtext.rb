@@ -508,7 +508,10 @@ module ActiveMerchant #:nodoc:
       end
 
       def message_from(response)
-        response[:info].encode('UTF-8') unless response[:info].nil?
+        message = ''
+        message += response[:info].encode('UTF-8') unless response[:info].nil?
+        message += "(#{response[:infocode].encode('UTF-8')})" unless response[:infocode].nil?
+        message
       end
 
       def authorization_from(response, paymt_code, order_id)
