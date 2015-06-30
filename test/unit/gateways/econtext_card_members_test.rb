@@ -60,7 +60,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     }
     response = @gateway.store(@credit_card, options)
     assert_success response
-    assert_equal '正常', response.message
+    assert_equal '正常(00000)', response.message
     assert_equal '2S63046', response.authorization[:card_aquirer_code]
 
   end
@@ -75,7 +75,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'C1430', response.params['infocode']
     assert_equal '-7', response.params['status']
-    assert_equal 'カード与信失敗(02-00)', response.message
+    assert_equal 'カード与信失敗(02-00)(C1430)', response.message
   end
 
   def test_successful_purchase
@@ -100,7 +100,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     }
     response = @gateway.purchase(@amount, cust, options)
     assert_success response
-    assert_equal '正常', response.message
+    assert_equal '正常(00000)', response.message
   end
 
   def test_failed_purchase_invalid_member
@@ -127,7 +127,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'C2101', response.params['infocode']
     assert_equal '-2', response.params['status']
-    assert_equal '会員登録なし', response.message
+    assert_equal '会員登録なし(C2101)', response.message
   end
 
   def test_successful_authorize_and_capture
@@ -154,7 +154,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     }
     auth = @gateway.authorize(@amount, cust, options)
     assert_success auth
-    assert_equal '正常', auth.message
+    assert_equal '正常(00000)', auth.message
 
     options = {
         customer: cust
@@ -188,7 +188,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'C2101', response.params['infocode']
     assert_equal '-2', response.params['status']
-    assert_equal '会員登録なし', response.message
+    assert_equal '会員登録なし(C2101)', response.message
   end
 
   def test_partial_capture
@@ -234,7 +234,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'E1010', response.params['infocode']
     assert_equal '-2', response.params['status']
-    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
+    assert_equal 'パラメータチェックエラー「orderID:111」(E1010)', response.message
   end
 
   def test_successful_refund
@@ -332,7 +332,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'E1010', response.params['infocode']
     assert_equal '-2', response.params['status']
-    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
+    assert_equal 'パラメータチェックエラー「orderID:111」(E1010)', response.message
   end
 
   def test_successful_void
@@ -400,7 +400,7 @@ class EcontextCardMembersTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'E1010', response.params['infocode']
     assert_equal '-2', response.params['status']
-    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
+    assert_equal 'パラメータチェックエラー「orderID:111」(E1010)', response.message
   end
 
   private
