@@ -72,7 +72,7 @@ class EcontextTest < Test::Unit::TestCase
     }
     response = @gateway.purchase(@amount, @credit_card, options)
     assert_success response
-    assert_equal '正常', response.message
+    assert_equal '正常(00000)', response.message
   end
 
   def test_failed_purchase_c1430
@@ -82,7 +82,7 @@ class EcontextTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'C1430', response.params['infocode']
     assert_equal '-7', response.params['status']
-    assert_equal 'カード与信失敗(02-00)', response.message
+    assert_equal 'カード与信失敗(02-00)(C1430)', response.message
   end
 
   def test_failed_purchase_c1483
@@ -92,7 +92,7 @@ class EcontextTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'C1483', response.params['infocode']
     assert_equal '-7', response.params['status']
-    assert_equal 'カード与信失敗(01-04)', response.message
+    assert_equal 'カード与信失敗(01-04)(C1483)', response.message
   end
 
   def test_successful_authorize_and_capture
@@ -111,13 +111,13 @@ class EcontextTest < Test::Unit::TestCase
     }
     auth = @gateway.authorize(@amount, @credit_card, options)
     assert_success auth
-    assert_equal '正常', auth.message
+    assert_equal '正常(00000)', auth.message
 
     options = {
     }
     assert capture = @gateway.capture(@amount, auth.authorization, options)
     assert_success capture
-    assert_equal '正常', capture.message
+    assert_equal '正常(00000)', capture.message
   end
 
   def test_failed_authorize_c1430
@@ -127,7 +127,7 @@ class EcontextTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'C1430', response.params['infocode']
     assert_equal '-7', response.params['status']
-    assert_equal 'カード与信失敗(02-00)', response.message
+    assert_equal 'カード与信失敗(02-00)(C1430)', response.message
   end
 
   def test_partial_capture
@@ -230,7 +230,7 @@ class EcontextTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'E1010', response.params['infocode']
     assert_equal '-2', response.params['status']
-    assert_equal 'パラメータチェックエラー「orderID:111」', response.message
+    assert_equal 'パラメータチェックエラー「orderID:111」(E1010)', response.message
   end
 
   def test_successful_void
@@ -252,7 +252,7 @@ class EcontextTest < Test::Unit::TestCase
 
     assert void = @gateway.void(auth.authorization)
     assert_success void
-    assert_equal '00異常なし', void.message
+    assert_equal '00異常なし(00000)', void.message
   end
 
   def test_failed_void
