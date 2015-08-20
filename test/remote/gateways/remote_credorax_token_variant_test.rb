@@ -7,6 +7,7 @@ require 'test_helper'
 # This test class will test the options were tokens are used. Credit Card details will only be supplied
 # in the initial calls to generate the token.
 #
+# Execute this test with.... bundle exec rake test:remote TEST=test/remote/gateways/remote_credorax_token_variant_test.rb
 
 
 class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
@@ -59,12 +60,138 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     assert_not_nil response.authorization[:token]
   end
 
+  def test_successful_store_with_disable_padding_normal_name
+    init_options = fixtures(:credorax)
+    init_options[:cardholder_name_padding] = false
+    gateway = CredoraxGateway.new(init_options)
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+    response = gateway.store(@credit_card, @options)
+    assert_success response
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+    assert_not_nil response.authorization[:token]
+  end
+
+  def test_successful_store_with_short_name
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+
+    short_name_credit_card = credit_card('4037660000001115',
+                               {:brand => nil,
+                                :verification_value => '123',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                                :name => 'Yu'
+                               })
+
+    response = @gateway.store(short_name_credit_card, @options)
+    assert_success response
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+    assert_not_nil response.authorization[:token]
+  end
+
+  def test_successful_store_with_short_two_word_name
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+
+    short_name_credit_card = credit_card('4037660000001115',
+                               {:brand => nil,
+                                :verification_value => '123',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                                :name => 'Yu X'
+                               })
+
+    response = @gateway.store(short_name_credit_card, @options)
+    assert_success response
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+    assert_not_nil response.authorization[:token]
+  end
+
+  def test_successful_store_with_short_name_custom_padding
+    init_options = fixtures(:credorax)
+    init_options[:cardholder_name_padding_character] = '_'
+    gateway = CredoraxGateway.new(init_options)
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+
+    short_name_credit_card = credit_card('4037660000001115',
+                               {:brand => nil,
+                                :verification_value => '123',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                                :name => 'Yu'
+                               })
+
+    response = gateway.store(short_name_credit_card, @options)
+    assert_success response
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+    assert_not_nil response.authorization[:token]
+  end
+
+  def test_successful_store_with_blank_name_custom_padding
+    init_options = fixtures(:credorax)
+    init_options[:cardholder_name_padding_character] = '_'
+    gateway = CredoraxGateway.new(init_options)
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+
+    short_name_credit_card = credit_card('4037660000001115',
+                               {:brand => nil,
+                                :verification_value => '123',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                                :name => ''
+                               })
+
+    response = gateway.store(short_name_credit_card, @options)
+    assert_success response
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+    assert_not_nil response.authorization[:token]
+  end
+
   def test_failure_store
     @options[:email] = 'noone@example.com'
     @options[:store_verification_amount] = @amount
     response = @gateway.store(@declined_card, @options)
     assert_failure response
     assert_equal 'Card+cannot+be+identified', response.message
+  end
+
+  def test_failure_store_due_to_short_name_padding_off
+    init_options = fixtures(:credorax)
+    init_options[:cardholder_name_padding] = false
+    gateway = CredoraxGateway.new(init_options)
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+    short_name_credit_card = credit_card('4037660000001115',
+                               {:brand => nil,
+                                :verification_value => '123',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                                :name => 'Yu'
+                               })
+    assert_raise(ArgumentError, "billing contact name must be at least than 5 characters") do
+      gateway.store(short_name_credit_card, @options)
+    end
+  end
+
+  def test_failure_store_due_to_blank_name_padding_off
+    init_options = fixtures(:credorax)
+    init_options[:cardholder_name_padding] = false
+    gateway = CredoraxGateway.new(init_options)
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+    short_name_credit_card = credit_card('4037660000001115',
+                               {:brand => nil,
+                                :verification_value => '123',
+                                :month => 3,
+                                :year => (Time.now.year + 1),
+                                :name => ''
+                               })
+    assert_raise(ArgumentError, "billing contact name must be at least than 5 characters") do
+      gateway.store(short_name_credit_card, @options)
+    end
   end
 
   def test_failure_due_to_bad_cvv
@@ -74,7 +201,6 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase
-
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
@@ -90,7 +216,6 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase_transaction_scoped_dba
-
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
@@ -107,7 +232,6 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
   end
 
   def test_failed_purchase
-
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
@@ -124,7 +248,6 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
   end
 
   def test_successful_authorize_and_capture
-
     @options[:email] = 'noone@example.com'
     store = @gateway.store(@credit_card, @options)
 
@@ -360,5 +483,4 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     assert void = @gateway.void(bad_auth, options)
     assert_failure void
   end
-
 end
