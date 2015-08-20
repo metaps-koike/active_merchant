@@ -124,7 +124,7 @@ module ActiveMerchant #:nodoc:
       #     merchant_id: 'COMPX840',
       #     md5_cipher_key: 'A23SD5',
       #     name_on_statement: 'Company X',
-      #     cardholder_name_padding: '',
+      #     cardholder_name_padding: true,
       #     cardholder_name_padding_character: '_'
       # )
       # ```
