@@ -457,7 +457,7 @@ module ActiveMerchant #:nodoc:
         post['cardExpdate'] = "#{payment.year.to_s}#{'%02d' % payment.month}" # 'yyyymm' format
         post['payCnt'] = '00'                                                 # Default to 'lump-sum payment'
         post['cd3secFlg'] = 0                                                 # Do NOT activate 3d secure
-        post['CVV2'] = '%04d' % payment.verification_value
+        post['CVV2'] = '%04d' % payment.verification_value.to_i
       end
 
       def parse(body)
@@ -508,7 +508,10 @@ module ActiveMerchant #:nodoc:
       end
 
       def message_from(response)
-        response[:info].encode('UTF-8') unless response[:info].nil?
+        message = ''
+        message += response[:info].encode('UTF-8') unless response[:info].nil?
+        message += "(#{response[:infocode].encode('UTF-8')})" unless response[:infocode].nil?
+        message
       end
 
       def authorization_from(response, paymt_code, order_id)
