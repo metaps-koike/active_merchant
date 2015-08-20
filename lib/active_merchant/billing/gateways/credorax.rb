@@ -76,6 +76,8 @@ module ActiveMerchant #:nodoc:
         transaction_3d_enrolled:                '100'
       }
 
+      C1_MIN_LENGTH = 5 # Billing Contact Name (c1) attribute minimum length
+
       self.test_url = 'https://intconsole.credorax.com/intenv/service/gateway'
 
       self.supported_countries = %w(US JP AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE GB) # US, JP, EU28
@@ -103,6 +105,9 @@ module ActiveMerchant #:nodoc:
       #  * <tt>:name_on_statement => +string+</tt> Used to define the Billing Descriptor, by setting an 'DBA' (see "ePower Payment API - Implementation Guide Version 1.2 Apr 2013")
       #  * <tt>:live_url => +string+</tt> Credorax will only supply this to you after you have passed certification with them. (Only required if :test is false)
       #  * <tt>:test => +true+ or +false+</tt> - Force test transactions
+      #  *
+      #  * <tt>:cardholder_name_padding => +true+ or +false+</tt> - Pad the Billing Contact Name (c1) attribute if less than 5 characters in length. Defaults to TRUE
+      #  * <tt>:cardholder_name_padding_character => +true+ or +false+</tt> - Specify the padding character for Billing Contact Name (c1) attribute, if enabled and required. Defaults to '-'
       #
       # For example:
       # ```
@@ -112,12 +117,34 @@ module ActiveMerchant #:nodoc:
       #     name_on_statement: 'Company X'
       # )
       # ```
+      #
+      # # For example:
+      # ```
+      # @gateway = CredoraxGateway.new(
+      #     merchant_id: 'COMPX840',
+      #     md5_cipher_key: 'A23SD5',
+      #     name_on_statement: 'Company X',
+      #     cardholder_name_padding: '',
+      #     cardholder_name_padding_character: '_'
+      # )
+      # ```
+      #
+      #
       def initialize(options={})
         requires!(options, :md5_cipher_key, :merchant_id, :name_on_statement)
-        if options.has_key? :test && !options[:test].nil? && !options[:test]
+        if options.has_key?(:test) && !options[:test].nil? && !options[:test]
           # Not test mode, also require the live_url
           requires!(options, :live_url)
         end
+
+        unless options.has_key?(:cardholder_name_padding)
+          options[:cardholder_name_padding] = true # Set default
+        end
+
+        unless options.has_key?(:cardholder_name_padding_character)
+          options[:cardholder_name_padding_character] = '-' # Set default
+        end
+
         super
       end
 
@@ -648,14 +675,35 @@ module ActiveMerchant #:nodoc:
           # BIN to Brand lookup
           post['b2'] = card_brand(payment.instance_variable_get('@brand'))
         end
-        raise(ArgumentError, 'billing contact name must be at least than 5 characters') unless payment.name.length >= 5
+
+        payment_name = clean_cardholder_name(payment.name)
+
+        raise(ArgumentError, 'billing contact name must be at least than 5 characters') unless c1_field_data_valid?(payment_name)
         raise(ArgumentError, 'cvv can only be 3 characters') unless payment.verification_value.length == 3
 
         post['b1'] = payment.number                 # Card Number
         post['b3'] = '%02d' % payment.month         # Card Expiration Month (MM) - ActiveMerchant Card stores as FixNum
         post['b4'] = payment.year.to_s[-2..-1]      # Card Expiration Year (YY) - ActiveMerchant Card stores as FixNum
         post['b5'] = payment.verification_value     # Card Secure Code, Visa
-        post['c1'] = payment.name                   # Billing Contact Name
+        post['c1'] = pad_c1_field(payment_name)     # Billing Contact Name
+      end
+
+      def clean_cardholder_name(payment_name)
+        # If a single word/name is supplied to ActiveMerchant::Billing::CreditCard,
+        # the name method is prefixing a space.
+        # It's returning "#{firstname} #{lastname}" where firstname is nil, and lastname is the single name
+        # This method strips any leading space characters, BUT ONLY IF we are enabling padding
+        return payment_name unless (@options[:cardholder_name_padding] == true)
+        payment_name.lstrip
+      end
+
+      def c1_field_data_valid?(payment_name)
+        (@options[:cardholder_name_padding] == true) || (payment_name.length >= C1_MIN_LENGTH)
+      end
+
+      def pad_c1_field(payment_name)
+        return payment_name unless (@options[:cardholder_name_padding] == true)
+        payment_name.ljust(C1_MIN_LENGTH, @options[:cardholder_name_padding_character])
       end
 
       def parse(body)
