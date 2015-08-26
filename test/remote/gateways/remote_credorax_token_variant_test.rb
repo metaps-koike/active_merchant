@@ -129,6 +129,28 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     assert_not_nil response.authorization[:token]
   end
 
+  def test_successful_store_with_four_characters_name_custom_padding
+    init_options = fixtures(:credorax)
+    init_options[:cardholder_name_padding_character] = '_'
+    gateway = CredoraxGateway.new(init_options)
+    @options[:email] = 'noone@example.com'
+    @options[:store_verification_amount] = 32433534
+
+    short_name_credit_card = credit_card('4037660000001115',
+                                         {
+                                             :brand => nil,
+                                             :verification_value => '123',
+                                             :month => 3,
+                                             :year => (Time.now.year + 1),
+                                             :first_name => 'ABCD',
+                                             :last_name => ' ',
+                                         })
+    response = gateway.store(short_name_credit_card, @options)
+    assert_success response
+    assert_equal 'Transaction+has+been+executed+successfully.', response.message
+    assert_not_nil response.authorization[:token]
+  end
+
   def test_successful_store_with_blank_name_custom_padding
     init_options = fixtures(:credorax)
     init_options[:cardholder_name_padding_character] = '_'
