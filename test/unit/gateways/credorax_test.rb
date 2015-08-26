@@ -103,6 +103,7 @@ class CredoraxTest < Test::Unit::TestCase
   end
 
   def test_failed_purchase_bad_card_name
+    @gateway.options[:cardholder_name_padding] = false
     @options[:email] = 'noone@example.com'
     credit_card = credit_card(CARD_NUMBER,
                                {:brand => nil,
