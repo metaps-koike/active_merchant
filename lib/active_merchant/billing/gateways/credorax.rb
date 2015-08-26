@@ -757,7 +757,14 @@ module ActiveMerchant #:nodoc:
       end
 
       def message_from(response)
-        response['z3']
+        message = response['z3']
+        unless success_from(response)
+          codes = []
+          codes << response['z2']
+          codes << response['z6'] unless response['z6'].nil?
+          message += " (%s)" % codes.join(',')
+        end
+        message
       end
 
       def authorization_from(response)

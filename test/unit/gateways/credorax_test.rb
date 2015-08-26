@@ -87,7 +87,7 @@ class CredoraxTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @declined_card, @options)
     assert_failure response
     assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], response.error_code
-    assert_equal 'Card+cannot+be+identified', response.message
+    assert_equal 'Card+cannot+be+identified (-9)', response.message
   end
 
   def test_failed_purchase_bad_description
@@ -161,7 +161,7 @@ class CredoraxTest < Test::Unit::TestCase
     response = @gateway.authorize(@amount, @declined_card, @options)
     assert_failure response
     assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], response.error_code
-    assert_equal 'Card+cannot+be+identified', response.message
+    assert_equal 'Card+cannot+be+identified (-9)', response.message
   end
 
   def test_partial_capture
@@ -216,7 +216,7 @@ class CredoraxTest < Test::Unit::TestCase
     assert capture = @gateway.capture(nil, @bad_auth, @options)
     assert_failure capture
     assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], capture.error_code
-    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.', capture.message
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty. (-9)', capture.message
   end
 
   def test_failed_capture_bad_reference
@@ -243,7 +243,7 @@ class CredoraxTest < Test::Unit::TestCase
     assert capture = @gateway.capture(nil, @bad_auth, @options)
     assert_failure capture
     assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], capture.error_code
-    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+%5B1%2F1A1406251%5D+has+not+been+found.', capture.message
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Successful+referred+transaction+%5B1%2F1A1406251%5D+has+not+been+found. (-9)', capture.message
   end
 
   def test_successful_refund
@@ -292,7 +292,7 @@ class CredoraxTest < Test::Unit::TestCase
     response = @gateway.refund(nil, @bad_auth, @options)
     assert_failure response
     assert_equal CredoraxGateway::RESULT_CODES[:parameter_malformed], response.error_code
-    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.', response.message
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty. (-9)', response.message
   end
 
   def test_successful_void
@@ -338,6 +338,7 @@ class CredoraxTest < Test::Unit::TestCase
     }
     assert void = @gateway.void(@bad_auth, @options)
     assert_failure void
+    assert_equal '2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty. (-9,09)', void.message
     assert void.test?
   end
 
@@ -388,6 +389,6 @@ class CredoraxTest < Test::Unit::TestCase
   end
 
   def failed_void_response
-    "M=#{MERCHANT_ID}&O=4&T=01%2F22%2F2015+03%3A49%3A10&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=-&b1=-&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&K=cf1d2698dc1e96f73285327c28457aaf"
+    "M=#{MERCHANT_ID}&O=4&T=01%2F22%2F2015+03%3A49%3A10&V=413&a1=#{@options[:order_id]}&a2=2&a4=-&a5=-&b1=-&z1=1A-1&z2=-9&z3=2.+At+least+one+of+input+parameters+is+malformed.%3A+Parameter+%5Bg4%5D+cannot+be+empty.&z6=09&K=cf1d2698dc1e96f73285327c28457aaf"
   end
 end

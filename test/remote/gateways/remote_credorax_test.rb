@@ -56,7 +56,7 @@ class RemoteCredoraxTest < Test::Unit::TestCase
     @options[:email] = 'noone@example.com'
     response = @gateway.purchase(@amount, @declined_card, @options)
     assert_failure response
-    assert_equal 'Card+cannot+be+identified', response.message
+    assert_equal 'Card+cannot+be+identified (-9)', response.message
   end
 
   def test_successful_authorize_and_capture

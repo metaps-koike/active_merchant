@@ -177,7 +177,7 @@ class RemoteCredoraxTokenVariantTest < Test::Unit::TestCase
     @options[:store_verification_amount] = @amount
     response = @gateway.store(@declined_card, @options)
     assert_failure response
-    assert_equal 'Card+cannot+be+identified', response.message
+    assert_equal 'Card+cannot+be+identified (-9)', response.message
   end
 
   def test_failure_store_due_to_short_name_padding_off
