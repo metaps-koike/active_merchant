@@ -221,7 +221,7 @@ class RemoteEcontextTest < Test::Unit::TestCase
         kanji_name_1: 'イーコンテクスト',
         kanji_name_2: '太郎',
         email: 'abc@example.com',
-        pay_limit_day: (Time.now + 60 * 60 * 24).strftime('%Y/%m/%d'),
+        pay_limit_day: (Time.now + 60 * 60 * 24),
         site_info: 'ショップ名',
     }
     response = @gateway.entry_order(@amount, options)

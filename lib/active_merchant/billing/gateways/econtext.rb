@@ -408,7 +408,7 @@ module ActiveMerchant #:nodoc:
         post['kanjiName1_1'] = options[:kanji_name_1]
         post['kanjiName1_2'] = options[:kanji_name_2] unless options[:pay_limit_day].nil?
         post['email'] = options[:email]
-        post['payLimitDay'] = options[:pay_limit_day] unless options[:pay_limit_day].nil?
+        post['payLimitDay'] = options[:pay_limit_day].strftime('%Y/%m/%d') unless options[:pay_limit_day].nil?
         post['siteInfo'] = options[:site_info] unless options[:site_info].nil?
 
         commit(post, pCode, options[:order_id])
