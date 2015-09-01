@@ -391,7 +391,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def entry_order(money, options={})
-        requires!(options, :order_id, :session_id, :description, :tel_no, :kanji_name_1, :kanji_name_2, :email)
+        requires!(options, :order_id, :session_id, :description, :tel_no, :kanji_name_1, :email)
 
         pCode = PAYMENT_CODE[:cash]
         post = {
@@ -406,7 +406,7 @@ module ActiveMerchant #:nodoc:
 
         post['telNo'] = options[:tel_no]
         post['kanjiName1_1'] = options[:kanji_name_1]
-        post['kanjiName1_2'] = options[:kanji_name_2]
+        post['kanjiName1_2'] = options[:kanji_name_2] unless options[:pay_limit_day].nil?
         post['email'] = options[:email]
         post['payLimitDay'] = options[:pay_limit_day] unless options[:pay_limit_day].nil?
         post['siteInfo'] = options[:site_info] unless options[:site_info].nil?
