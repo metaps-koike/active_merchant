@@ -210,6 +210,25 @@ class RemoteEcontextTest < Test::Unit::TestCase
     assert_failure response
   end
 
+  def test_successful_entry_order
+    stamp = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: stamp,
+        session_id: session,
+        description: "商品名(#{stamp})",
+        tel_no: '0011112222',
+        kanji_name_1: 'イーコンテクスト',
+        kanji_name_2: '太郎',
+        email: 'abc@example.com',
+        pay_limit_day: (Time.now + 60 * 60 * 24).strftime('%Y/%m/%d'),
+        site_info: 'ショップ名',
+    }
+    response = @gateway.entry_order(@amount, options)
+    assert_success response
+    assert_equal '正常(00000)', response.message
+  end
+
   def test_successful_verify
     assert_raise(NotImplementedError){ @gateway.verify(@credit_card, @options) }
   end

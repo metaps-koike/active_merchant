@@ -269,6 +269,25 @@ class EcontextTest < Test::Unit::TestCase
     assert_failure response
   end
 
+  def test_successful_entry_order
+    @gateway.expects(:ssl_post).returns(successfull_entry_order_response)
+
+    order = Time.now.getutc.strftime("%L%S%M%H%d%m%Y")
+    session = Time.now.getutc.strftime("%Y%m%d%H%M%S%L")
+    options = {
+        order_id: order,
+        session_id: session,
+        description: '商品名',
+        tel_no: '0011112222',
+        kanji_name_1: 'イーコンテクスト',
+        kanji_name_2: '太郎',
+        email: 'abc@example.com',
+    }
+    response = @gateway.entry_order(@amount, options)
+    assert_success response
+    assert_equal '正常(00000)', response.message
+  end
+
   def test_successful_verify
     assert_raise(NotImplementedError){ @gateway.verify(@credit_card, @options) }
   end
@@ -317,5 +336,9 @@ class EcontextTest < Test::Unit::TestCase
 
   def failed_void_response
     "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>-2</status><info>パラメータチェックエラー「orderID:111」</info><infoCode>E1010</infoCode></result>".encode('Shift_JIS')
+  end
+
+  def successfull_entry_order_response
+    "<?xml version=\"1.0\" encoding=\"shift_jis\"?><result><status>1</status><info>正常</info><infoCode>00000</infoCode><econNo>851954</econNo><paymentURL>https://test.econ.ne.jp/pay/p_paymain.aspx?odrno=8a857a73887e8575888475737f7e887a06</paymentURL><directpayURL>https://test.econ.ne.jp/pay/p_paymain.aspx?odrno=8a857a73887e8575888475737f7e887a06</directpayURL></result>".encode('Shift_JIS')
   end
 end

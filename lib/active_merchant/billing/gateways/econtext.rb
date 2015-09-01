@@ -390,6 +390,30 @@ module ActiveMerchant #:nodoc:
         commit(post, PAYMENT_CODE[:card_membership], nil)
       end
 
+      def entry_order(money, options={})
+        requires!(options, :order_id, :session_id, :description, :tel_no, :kanji_name_1, :kanji_name_2, :email)
+
+        pCode = PAYMENT_CODE[:cash]
+        post = {
+            'paymtCode' => pCode,
+            'fncCode' => FNC_CODES[:cash_card_reg_auth_sale],
+            'orderID' => options[:order_id],
+            'sessionID' => options[:session_id]
+        }
+
+        add_invoice(post, money, options)
+        add_econ_payment_page_settings(post, options)
+
+        post['telNo'] = options[:tel_no]
+        post['kanjiName1_1'] = options[:kanji_name_1]
+        post['kanjiName1_2'] = options[:kanji_name_2]
+        post['email'] = options[:email]
+        post['payLimitDay'] = options[:pay_limit_day] unless options[:pay_limit_day].nil?
+        post['siteInfo'] = options[:site_info] unless options[:site_info].nil?
+
+        commit(post, pCode, options[:order_id])
+      end
+
       def verify(credit_card, options={})
         raise NotImplementedError, 'verify operation is not supported'
       end
@@ -516,8 +540,9 @@ module ActiveMerchant #:nodoc:
 
       def authorization_from(response, paymt_code, order_id)
         {
-            ecn_token: response[:ecnToken],
-            user_token: response[:cduserID],
+            ecn_token: response[:ecntoken],
+            ecn_no: response[:econno],
+            user_token: response[:cduserid],
             card_aquirer_code: response[:shimukecd],
             previous_order_id: order_id,
             previous_paymt_code: paymt_code
